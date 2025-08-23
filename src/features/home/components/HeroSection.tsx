@@ -23,7 +23,7 @@ export const HeroSection: React.FC = () => (
             <span className="block bg-gradient-to-r from-orange-400 via-orange-300 to-amber-200 bg-clip-text font-semibold text-transparent">Simple. Encrypted. Yours.</span>
         </h1>
         <p className="max-w-2xl text-lg text-neutral-400 md:text-xl animate-fade-in-up-delayed">
-            Create and use clean, disposable email aliases that keep your real address hidden. Every request you make is sealed using Blindflare — so platforms and network edges only see an unreadable envelope. <span className="text-orange-300/90 font-medium">No content logs. No IP logs. Nothing to correlate you.</span>
+            Create and use clean, disposable email aliases that keep your real address hidden. Every request you make is sealed using Blindflare — so platforms and network edges only see an unreadable envelope. <span className="text-orange-300/90 font-medium">No content logs. No IP logs. Nothing to correlate you. PGP Features.</span>
         </p>
         <div className="flex flex-wrap gap-4">
             <Button size="lg" className="group bg-orange-500 text-neutral-900 hover:bg-orange-400" asChild>
@@ -39,7 +39,7 @@ export const HeroSection: React.FC = () => (
             <TooltipProvider delayDuration={150}>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button size="lg" variant="ghost" className="text-neutral-400 hover:text-orange-300" asChild>
+                        <Button size="lg" variant="ghost" className="text-neutral-400 hover:text-orange-300 hover:bg-transparent focus-visible:bg-transparent active:bg-transparent" asChild>
                             <Link to="/swagger">
                                 <Zap className="mr-2 h-4 w-4" /> Swagger
                             </Link>

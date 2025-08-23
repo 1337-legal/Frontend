@@ -1,5 +1,6 @@
 import { Shield } from 'lucide-react';
 import React from 'react';
+import { Link } from 'react-router';
 
 export const SiteFooter: React.FC = () => (
     <footer className="relative mt-8 border-t border-neutral-800/80 bg-neutral-950/90 backdrop-blur">
@@ -13,8 +14,17 @@ export const SiteFooter: React.FC = () => (
             <div className="flex flex-col gap-3 text-xs">
                 <p className="font-medium text-neutral-300">Resources</p>
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-neutral-500">
-                    {['Docs', 'Status', 'Roadmap', 'License', 'Privacy', 'Terms'].map(l => (
-                        <span key={l} className="cursor-pointer transition hover:text-orange-300/80">{l}</span>
+                    {[
+                        { label: 'Docs', to: '/swagger' },
+                        { label: 'Status', to: '/status' },
+                        { label: 'Roadmap', to: '/roadmap' },
+                        { label: 'License', to: '/license' },
+                        { label: 'Privacy', to: '/privacy' },
+                        { label: 'Terms', to: '/terms' },
+                    ].map(r => (
+                        <Link key={r.label} to={r.to} className="transition hover:text-orange-300/80">
+                            {r.label}
+                        </Link>
                     ))}
                 </div>
             </div>
