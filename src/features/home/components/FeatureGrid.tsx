@@ -18,7 +18,7 @@ export const FeatureGrid: React.FC = () => (
             {features.map((f, i) => (
                 <Card key={f.title} className="group relative border-neutral-800 bg-neutral-900/60 backdrop-blur transition hover:border-orange-500/50 hover:shadow-[0_0_0_1px_rgba(251,146,60,0.35),0_8px_30px_-8px_rgba(251,146,60,0.4)] opacity-0 animate-fade-in-up" style={{ animationDelay: `${80 * i}ms` }}>
                     <CardHeader className="space-y-3">
-                        <FeatureIcon icon={f.icon} />
+                        <FeatureIcon icon={f.icon as React.ComponentType<{ className?: string }>} />
                         <CardTitle className="text-lg font-medium text-neutral-100">{f.title}</CardTitle>
                         <CardDescription className="text-neutral-400">{f.desc}</CardDescription>
                     </CardHeader>
