@@ -30,7 +30,7 @@ export const BenefitsCard: React.FC = () => (
                 ))}
             </ol>
             <Button asChild variant="outline" className="w-full border-neutral-700 bg-neutral-950/40 text-neutral-300 hover:border-orange-500/70 hover:text-orange-200 hover:bg-neutral-900/60">
-                <Link to="/get-started">Learn More</Link>
+                <Link to="/auth">Learn More</Link>
             </Button>
         </CardContent>
     </Card>

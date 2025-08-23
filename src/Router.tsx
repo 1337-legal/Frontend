@@ -1,33 +1,46 @@
 import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 
-import GetStarted from '@Pages/GetStarted';
+import Auth from '@Pages/Auth';
 import Home from '@Pages/Home';
+import NotFound from '@Pages/NotFound';
 import Privacy from '@Pages/Privacy';
 import Terms from '@Pages/Terms';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const router = createBrowserRouter([
     {
-        path: "/",
+        path: '/',
         element: <Home />,
+        errorElement: <NotFound />,
+        children: []
     },
     {
-        path: "/get-started",
-        element: <GetStarted />,
+        path: '/auth',
+        element: <Auth />,
+        errorElement: <NotFound />
     },
     {
-        path: "/terms",
+        path: '/terms',
         element: <Terms />,
+        errorElement: <NotFound />
     },
     {
-        path: "/privacy",
+        path: '/privacy',
         element: <Privacy />,
+        errorElement: <NotFound />
+    },
+    {
+        path: '*',
+        element: <NotFound />
     }
 ]);
 
 const Router = () => {
     return (
-        <RouterProvider router={router} />
+        <QueryClientProvider client={new QueryClient()}>
+            <RouterProvider router={router} />
+        </QueryClientProvider>
     )
 }
 

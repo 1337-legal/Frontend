@@ -66,6 +66,8 @@ export const HeroFlowField: React.FC = () => (
                     const x = 180 + (i % 5) * 270 + (i % 2 ? 80 : 0);
                     const size = 30 + (i % 4) * 8;
                     const variant = (i % 3) + 1;
+
+                    const negDelay = -((i * 947) % 3500) / 1000; // up to ~ -3.5s
                     return (
                         <text
                             key={`emoji-${i}`}
@@ -74,7 +76,13 @@ export const HeroFlowField: React.FC = () => (
                             fontSize={size}
                             fill="#ffdda8"
                             className={`motion-orb-${variant}`}
-                            style={{ filter: 'url(#emoji-glow)', fontFamily: '"Segoe UI Emoji", "Apple Color Emoji", sans-serif', textShadow: '0 0 10px rgba(251,146,60,0.95),0 0 22px rgba(251,146,60,0.55)' }}
+                            style={{
+                                filter: 'url(#emoji-glow)',
+                                fontFamily: '"Segoe UI Emoji", "Apple Color Emoji", sans-serif',
+                                textShadow: '0 0 10px rgba(251,146,60,0.95),0 0 22px rgba(251,146,60,0.55)',
+                                animationDelay: `${negDelay}s`,
+                                willChange: 'transform'
+                            }}
                         >{emojis[i % emojis.length]}</text>
                     );
                 });
