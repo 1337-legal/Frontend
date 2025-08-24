@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, ExternalLink, Github, Terminal } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Download, ExternalLink, Github, Terminal } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router';
 
@@ -6,8 +6,14 @@ import AuthNebulaScene from '@Features/auth/components/AuthNebulaScene';
 import CodeBlock from '@Features/auth/components/CodeBlock';
 import MnemonicForm from '@Features/auth/components/MnemonicForm';
 import SectionCard from '@Features/auth/components/SectionCard';
+import Backend from '@Services/BackendService';
 
 const Auth: React.FC = () => {
+    const [authedMnemonic, setAuthedMnemonic] = React.useState<string | null>(null);
+    const onValidated = async (m: string) => {
+        setAuthedMnemonic(m);
+        try { await Backend.initWithMnemonic(m); } catch (e) { console.error(e); }
+    };
     return (
         <div className="relative min-h-screen w-full overflow-x-hidden bg-neutral-950 text-neutral-100">
             <div className="pointer-events-none fixed inset-0 z-0">
@@ -24,8 +30,24 @@ const Auth: React.FC = () => {
                     </Link>
                     <span className="rounded border border-orange-400/40 bg-neutral-900/60 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-orange-300">Onboarding</span>
                 </div>
-
-                <MnemonicForm onValidated={(m) => alert('Authenticated (mock) with mnemonic: ' + m)} />
+                <div className="relative pb-14">
+                    <MnemonicForm onValidated={onValidated} />
+                    {authedMnemonic && (
+                        <div className="mt-8">
+                            <Link to="/account" className="inline-flex items-center rounded-md bg-orange-500 px-3 py-2 text-xs font-semibold text-neutral-900 shadow hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50">
+                                Account
+                            </Link>
+                        </div>
+                    )}
+                    <button
+                        onClick={() => document.getElementById('alternatives')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                        className="group absolute left-1/2 bottom-2 -translate-x-1/2 inline-flex flex-col items-center text-neutral-600 hover:text-orange-300 transition focus:outline-none focus-visible:ring-1 focus-visible:ring-orange-500/40"
+                        aria-label="Scroll to alternatives"
+                    >
+                        <span className="mb-1 text-[10px] tracking-wider font-medium uppercase text-neutral-500 group-hover:text-orange-300">Explore Tools</span>
+                        <ArrowDown className="h-5 w-5 animate-bounce" />
+                    </button>
+                </div>
 
                 <div id="alternatives" className="mb-10 scroll-mt-24">
                     <h2 className="font-semibold tracking-tight text-2xl mb-2">Alternatives & Power Tools</h2>
