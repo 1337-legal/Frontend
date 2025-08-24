@@ -1,4 +1,3 @@
-// filepath: c:\Users\Sierra\Documents\Projects\1337.legal\Frontend\src\features\auth\components\AuthNebulaScene.tsx
 import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 

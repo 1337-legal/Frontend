@@ -1,5 +1,4 @@
-import { Copy, Eye, EyeOff, RefreshCw, ShieldCheck } from 'lucide-react';
-// filepath: c:\Users\Sierra\Documents\Projects\1337.legal\Frontend\src\features\auth\components\MnemonicForm.tsx
+import { Copy, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import React, { useCallback, useRef, useState } from 'react';
 
 import { generateMnemonic, validateMnemonic } from '@scure/bip39';
@@ -87,14 +86,14 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
     };
 
     return (
-        <section className="mb-20">
-            <header className="mb-8 space-y-4">
-                <h1 className="font-cal text-4xl tracking-tight md:text-5xl">
+        <section className="mb-12">
+            <header className="mb-6 space-y-3">
+                <h1 className="font-cal text-3xl tracking-tight md:text-4xl">
                     Secure Sign‑In
                     <span className="block bg-gradient-to-r from-orange-400 via-orange-300 to-amber-200 bg-clip-text font-semibold text-transparent">12‑Word Mnemonic (BIP39)</span>
                 </h1>
-                <p className="max-w-2xl text-sm md:text-base text-neutral-400">Enter or generate a 12‑word mnemonic. This never leaves your device; only derived keys are transmitted. Filling all 12 words enables Sign In.</p>
-                <div className="flex flex-wrap gap-2 pt-1">
+                <p className="max-w-2xl text-xs md:text-sm text-neutral-400">Enter or generate a 12‑word mnemonic. This never leaves your device; only derived keys are transmitted. Filling all 12 words enables Sign In.</p>
+                <div className="flex flex-wrap gap-2 pt-0">
                     <button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending} className="inline-flex items-center rounded-md bg-orange-500 px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow hover:bg-orange-400 disabled:opacity-50">
                         <RefreshCw className={`mr-1 h-3.5 w-3.5 ${generateMutation.isPending ? 'animate-spin' : ''}`} /> {generateMutation.isPending ? 'Generating...' : 'New Mnemonic'}
                     </button>
@@ -109,8 +108,8 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
                     </button>
                 </div>
             </header>
-            <div className="mb-4">
-                <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            <div className="mb-3">
+                <div className="grid grid-cols-3 gap-2">
                     {words.map((w, i) => (
                         <div key={i} className="group relative">
                             <div className="absolute inset-0 rounded-md bg-gradient-to-br from-orange-500/15 via-amber-400/10 to-transparent opacity-0 transition-opacity group-hover:opacity-70 group-focus-within:opacity-100" />
@@ -126,7 +125,7 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
                                 type={show ? 'text' : 'password'}
                                 autoComplete="off"
                                 spellCheck={false}
-                                className="relative z-10 w-full rounded-md bg-neutral-900/60 px-2 py-2 text-[11px] font-mono tracking-wide text-neutral-100 placeholder-neutral-600 outline-none transition focus:bg-neutral-900/80 focus:ring-2 focus:ring-orange-500/30 disabled:opacity-50"
+                                className="relative z-10 w-full rounded-md bg-neutral-900/60 px-2 py-1.5 text-[10px] font-mono tracking-wide text-neutral-100 placeholder-neutral-600 outline-none transition focus:bg-neutral-900/80 focus:ring-2 focus:ring-orange-500/30 disabled:opacity-50"
                             />
                             <span className="pointer-events-none absolute -top-1 -left-1 z-20 rounded bg-neutral-950/90 px-1 text-[9px] font-semibold text-orange-300 ring-1 ring-orange-500/30 shadow">{i + 1}</span>
                             {w && (
@@ -148,19 +147,15 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
                         </div>
                     ))}
                 </div>
-                <div className="mt-3">
+                <div className="mt-2">
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
                         <div className="h-full bg-gradient-to-r from-orange-600 via-amber-400 to-orange-300 transition-all duration-500" style={{ width: `${(filled / 12) * 100}%` }} />
                     </div>
-                    <p className="mt-1 text-[10px] font-medium tracking-wide text-neutral-500">{filled}/12 words {filled === 12 ? <span className="text-orange-300 ml-1">ready</span> : <span className="ml-1 text-neutral-600">fill all words</span>}</p>
+                    <p className="mt-1 text-[9px] font-medium tracking-wide text-neutral-500">{filled}/12 words {filled === 12 ? <span className="text-orange-300 ml-1">ready</span> : <span className="ml-1 text-neutral-600">fill all words</span>}</p>
                 </div>
             </div>
             {error && <p className="mb-4 text-xs text-red-400">{error}</p>}
             {!error && validateMutation.isError && <p className="mb-4 text-xs text-red-400">Validation failed.</p>}
-            <div className="rounded-md border border-neutral-800/70 bg-neutral-900/40 p-4 text-[11px] text-neutral-400 flex items-start gap-2">
-                <ShieldCheck className="h-4 w-4 text-orange-400 mt-0.5" />
-                <p><strong className="text-orange-300">Security Tip:</strong> Store these words offline. Anyone with them controls your aliases. Only derived keys are sent during auth.</p>
-            </div>
         </section>
     );
 };

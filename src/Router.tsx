@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 
+import Account from '@Pages/Account';
 import Auth from '@Pages/Auth';
 import Home from '@Pages/Home';
 import NotFound from '@Pages/NotFound';
@@ -28,6 +29,11 @@ const router = createBrowserRouter([
     {
         path: '/privacy',
         element: <Privacy />,
+        errorElement: <NotFound />
+    },
+    {
+        path: '/account',
+        element: <Account />,
         errorElement: <NotFound />
     },
     {
