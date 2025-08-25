@@ -4,18 +4,31 @@ import SessionService from './SessionService';
 
 // ---------------- Types & Guards ----------------
 export type Body = Record<string, unknown>;
-export interface AliasRecord { id?: string; alias?: string; address?: string; createdAt?: string;[k: string]: unknown }
+export interface AliasType { id?: string; alias?: string; address?: string; createdAt?: string;[k: string]: unknown }
+export interface AuthType {
+    user: {
+        address: string
+        role: string
+    }
+    token: string
+}
+
+export interface UserProfile { publicKey: string; address: string; pgpPublicKey: string | null; role?: string }
 
 interface BlindflareMeta { type: string; version: string }
 interface EncryptedEnvelope { blindflare: BlindflareMeta; cipher: string; iv?: string;[k: string]: unknown }
 interface ServerHello { serverPub?: string; sessionKeyEnc?: { data: string; iv: string; tag: string; ephemeralPublicKey: string };[k: string]: unknown }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-const isEncryptedEnvelope = (v: unknown): v is EncryptedEnvelope => isObject(v) && 'blindflare' in v && 'cipher' in v;
-const hasToken = (v: unknown): v is { token: string } => isObject(v) && 'token' in v && typeof v.token === 'string';
-const unwrapPayload = <T,>(v: unknown): T | unknown => (isObject(v) && 'payload' in v) ? (v as { payload: T }).payload : v;
+const isEncryptedEnvelope = (v: unknown): v is EncryptedEnvelope => isObject(v) && 'blindflare' in v;
+const hasToken = (v: unknown): v is { token: string } => {
+    if (!isObject(v)) return false;
+    const tok = (v as { token?: unknown }).token;
+    return typeof tok === 'string' && tok.length > 0;
+};
 
 class BackendService {
+    // Base URL (trim trailing slash for consistency)
     domain = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
     private mnemonicKey = 'bf_mnemonic';
@@ -23,9 +36,10 @@ class BackendService {
     private publicKey: string | null = null;
     private token: string | null = null;
     private sessionKey: string | null = null;
-    private serverPublicKey: string | null = null; // new
+    private serverPublicKey: string | null = null;
     private helloDone = false;
     private initializing: Promise<void> | null = null;
+    private readonly handshakeVersion = '1';
 
     // --------------- Public API ---------------
     async initWithMnemonic(mnemonic: string) {
@@ -63,7 +77,7 @@ class BackendService {
     private async hello() {
         if (this.helloDone && this.sessionKey) return;
         if (!this.publicKey || !this.privateKey) throw new Error('Public key missing');
-        const ver = '1';
+        const ver = this.handshakeVersion;
         const ts = Date.now();
         const nonce = crypto.getRandomValues(new Uint8Array(12)).reduce((a, b) => a + b.toString(16).padStart(2, '0'), '');
         const payload = `HELLO|${ver}|${ts}|${nonce}|${this.publicKey}`;
@@ -80,8 +94,6 @@ class BackendService {
                 const enc = serverHello.sessionKeyEnc;
                 if (enc && typeof enc === 'object') {
                     try {
-                        console.log("enc", enc)
-                        console.log("this.privateKey!", this.privateKey!)
                         const plaintext = await Fortress.decryptWithECC(enc, this.privateKey!);
                         const parsed = JSON.parse(plaintext);
                         if (parsed.key && typeof parsed.key === 'string') {
@@ -103,13 +115,29 @@ class BackendService {
     private async auth() {
         if (this.token) return;
         if (!this.publicKey) throw new Error('Public key missing');
+        if (!this.sessionKey) throw new Error('Session key missing');
+
         const signature = await this.sign('AUTH');
         const body = { blindflare: { type: 'AUTH', publicKey: this.publicKey, signature, version: Fortress.version } };
-        const res = await fetch(`${this.domain}/api/v1/auth`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'BF-Session-Key': await this.resealSessionKeyForServer() }, body: JSON.stringify(body) });
-        const raw = await res.json().catch(() => ({}));
+        const res = await fetch(`${this.domain}/api/v1/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'BF-Session-Key': await this.resealSessionKeyForServer() },
+            body: JSON.stringify(body)
+        });
+
+        let data: unknown = null;
+        try {
+            const raw = await res.json();
+            data = this.sessionKey ? await Fortress.decryptTransaction<AuthType>(raw, this.sessionKey) : raw;
+        } catch {
+            console.warn('[Blindflare] Failed to parse auth response');
+        }
+
         if (!res.ok) throw new Error('Auth failed');
-        if (!hasToken(raw)) throw new Error('Auth failed: no token');
-        this.token = raw.token; localStorage.setItem('token', this.token); SessionService.setToken(this.token);
+        if (!hasToken(data)) throw new Error('Auth failed: no token');
+        this.token = data.token;
+        localStorage.setItem('token', this.token);
+        SessionService.setToken(this.token);
     }
 
     private async ensureSession() {
@@ -135,38 +163,40 @@ class BackendService {
 
     // --------------- Generic Request ---------------
     async sendRequest(method: string, endpoint: string, body?: Body): Promise<{ response: Response; status: number; data: unknown }> {
-        await this.ensureSession();
+        if (!this.helloDone || !this.sessionKey) await this.ensureSession();
+
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
         if (this.sessionKey) headers['BF-Session-Key'] = await this.resealSessionKeyForServer();
 
         let outbound: string | undefined;
         if (method !== 'GET') {
-            if (!this.sessionKey) throw new Error('Missing session key');
             const meta = { type: 'TX', version: Fortress.version };
-            const envelope = Fortress.encryptTransaction?.({ payload: body }, this.sessionKey, meta) || { blindflare: meta, payload: body };
+            let treatedBody = body;
+            if (isEncryptedEnvelope(body)) {
+                try {
+                    treatedBody = await Fortress.decryptTransaction(body, this.sessionKey!);
+                } catch (e) {
+                    console.warn('[Blindflare] Failed to decrypt incoming request body', e);
+                }
+            }
+            const envelope = Fortress.encryptTransaction?.({ payload: treatedBody }, this.sessionKey!, meta) || { blindflare: meta, payload: treatedBody };
             outbound = JSON.stringify(envelope);
         }
 
         const response = await fetch(this.domain + endpoint, { method, headers, body: outbound });
         if (response.status === 401) { this.resetAuth(); window.location.href = '/auth'; }
 
-        let parsed: unknown = null; try { parsed = await response.json(); } catch { /* ignore */ }
-        if (parsed && this.sessionKey && isEncryptedEnvelope(parsed)) {
-            try {
-                const decrypted = Fortress.decryptTransaction(parsed, this.sessionKey) || parsed;
-                parsed = unwrapPayload(decrypted);
-            } catch { /* ignore */ }
-        } else parsed = unwrapPayload(parsed);
+        const data = await Fortress.decryptTransaction(await response.json(), this.sessionKey!)
 
-        return { response, status: response.status, data: parsed };
+        return { response, status: response.status, data: data };
     }
 
-    // --------------- Alias Helpers ---------------
     async listAliases(): Promise<AliasRecord[]> {
         const { data } = await this.sendRequest('GET', '/api/v1/alias');
         return Array.isArray(data) ? data as AliasRecord[] : [];
     }
+
     async createAlias(): Promise<AliasRecord> {
         const { data, status } = await this.sendRequest('PUT', '/api/v1/alias', {});
         if (status >= 400) throw new Error('Alias create failed');
@@ -175,6 +205,18 @@ class BackendService {
     async deleteAlias(record: AliasRecord): Promise<void> {
         if (record.id) { await this.sendRequest('DELETE', `/api/v1/alias/${record.id}`); return; }
         const alias = record.alias || record.address; if (alias) await this.sendRequest('DELETE', '/api/v1/alias', { alias });
+    }
+
+    // --------------- User Helpers ---------------
+    async getUser(): Promise<UserProfile> {
+        const { data, status } = await this.sendRequest('GET', '/api/v1/user');
+        if (status >= 400) throw new Error('Failed to fetch user');
+        return data as UserProfile;
+    }
+    async updateUser(update: { address?: string; pgpPublicKey?: string | null }): Promise<UserProfile> {
+        const { data, status } = await this.sendRequest('PATCH', '/api/v1/user', update);
+        if (status >= 400) throw new Error('Failed to update user');
+        return data as UserProfile;
     }
 
     private async resealSessionKeyForServer(): Promise<string> {
