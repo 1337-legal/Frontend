@@ -1,36 +1,64 @@
 import { AlertCircle, Clipboard, Plus, RefreshCw } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+
+import { Button } from '@Components/ui/button';
+import BackendService from '@Services/BackendService';
 
 declare global { interface Window { __1337Ext?: unknown } }
 
-interface Props {
-    lastCreated: string;
-    quickCreating: boolean;
-    onGenerate: () => void;
-}
-
-const AutofillTab: React.FC<Props> = ({ lastCreated, quickCreating, onGenerate }) => {
+/**
+ * Quick alias generation and autofill assist for forms.
+ * Provides one-click alias creation and clipboard copy UX.
+ */
+const AutofillTab: React.FC = () => {
     const [copied, setCopied] = useState(false);
     const [justGenerated, setJustGenerated] = useState(false);
+    const [quickCreating, setQuickCreating] = useState(false);
+    const [lastCreated, setLastCreated] = useState<string>('');
+
     const aliasValue = lastCreated || '';
 
-    const copy = async () => {
-        if (!aliasValue) return;
-        try { await navigator.clipboard.writeText(aliasValue); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {/* noop */ }
+    /**
+     * Creates a new random alias quickly and stores the returned address.
+     */
+    const quickCreate = async () => {
+        setQuickCreating(true);
+        try {
+            const r = await BackendService.createAlias() as unknown as { address?: string };
+            setLastCreated(r?.address || 'created');
+        } catch {
+            setLastCreated('failed');
+        } finally { setQuickCreating(false); }
     };
 
-    // Auto-copy when a new alias appears
-    useEffect(() => {
-        if (aliasValue && justGenerated) {
-            copy();
-            setJustGenerated(false);
+    /**
+     * Copies the current alias value to the clipboard and shows feedback.
+     */
+    const copy = useCallback(async () => {
+        if (!aliasValue) return;
+        try {
+            await navigator.clipboard.writeText(aliasValue);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        } catch {
+            /* noop */
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [aliasValue]);
 
+    /** Auto-copies when a new alias appears. */
+    useEffect(() => {
+        if (aliasValue && justGenerated) {
+            void copy();
+            setJustGenerated(false);
+        }
+    }, [aliasValue, justGenerated, copy]);
+
+    /**
+     * Kicks off alias generation and flags auto-copy on update.
+     */
     const handleGenerate = () => {
         setJustGenerated(true); // flag to copy after parent updates lastCreated
-        onGenerate();
+        quickCreate();
     };
 
     const extensionDetected = typeof window.__1337Ext !== 'undefined';
@@ -60,16 +88,16 @@ const AutofillTab: React.FC<Props> = ({ lastCreated, quickCreating, onGenerate }
                                     value={aliasValue}
                                     readOnly
                                     placeholder="(none yet)"
-                                    className="flex-1 bg-transparent px-2 py-2 text-[11px] font-mono text-orange-200 placeholder-neutral-600 outline-none"
+                                    className="flex-1 bg-transparent px-2 text-center py-2 text-[11px] font-mono text-orange-200 placeholder-neutral-600 outline-none"
                                 />
-                                <button onClick={copy} disabled={!aliasValue} className="px-2 text-[10px] font-medium text-neutral-400 hover:text-orange-300 disabled:opacity-40" aria-live="polite">{copied ? 'Copied' : <Clipboard className="h-3.5 w-3.5" />}</button>
+                                <Button onClick={copy} disabled={!aliasValue} className="px-2 text-[10px] font-medium text-neutral-400 hover:text-orange-300 disabled:opacity-40" aria-live="polite">{copied ? 'Copied' : <Clipboard className="h-3.5 w-3.5" />}</Button>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="relative">
-                                <button onClick={handleGenerate} disabled={quickCreating} className="inline-flex items-center rounded-md bg-orange-500 px-4 py-2 text-[11px] font-semibold text-neutral-900 shadow hover:bg-orange-400 disabled:opacity-50">
+                                <Button onClick={handleGenerate} disabled={quickCreating} className="inline-flex items-center rounded-md bg-orange-500 px-4 py-2 text-[11px] font-semibold text-neutral-900 shadow hover:bg-orange-400 disabled:opacity-50">
                                     {quickCreating ? <RefreshCw className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Plus className="mr-1 h-3.5 w-3.5" />} {quickCreating ? 'Generating...' : 'Generate'}
-                                </button>
+                                </Button>
                                 {copied && (
                                     <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full rounded-md border border-neutral-800/60 bg-neutral-900/90 px-2 py-1 text-[10px] font-medium text-orange-300 shadow">
                                         Copied

@@ -1,14 +1,19 @@
 import { RefreshCw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import Backend from '@Services/BackendService';
+import BackendService from '@Services/BackendService';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+/**
+ * Forwarding address configuration tab.
+ * Allows the user to set/update the destination address for routed messages.
+ */
 const RouteTab: React.FC = () => {
-    const qc = useQueryClient();
+    const queryClient = useQueryClient();
+
     const { data: user, isLoading, isFetching } = useQuery({
         queryKey: ['user'],
-        queryFn: () => Backend.getUser(),
+        queryFn: () => BackendService.getUser(),
     });
 
     const [forwarding, setForwarding] = useState('');
@@ -18,15 +23,17 @@ const RouteTab: React.FC = () => {
         setForwarding(user?.address || '');
     }, [user?.address]);
 
+    /** Persists the forwarding address and refreshes the user cache. */
     const updateMutation = useMutation({
-        mutationFn: (address: string) => Backend.updateUser({ address }),
+        mutationFn: (address: string) => BackendService.updateUser({ address }),
         onSuccess: () => {
             setStatus('Updated');
-            qc.invalidateQueries({ queryKey: ['user'] });
+            queryClient.invalidateQueries({ queryKey: ['user'] });
         },
         onError: (e: unknown) => setStatus(e instanceof Error ? e.message : 'Update failed'),
     });
 
+    /** Triggers the update when a non-empty address is present. */
     const onUpdate = () => {
         if (!forwarding) return;
         setStatus('');

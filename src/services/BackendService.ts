@@ -3,122 +3,132 @@ import Fortress from '@blindflare/Fortress';
 import SessionService from './SessionService';
 
 // ---------------- Types & Guards ----------------
+/**
+ * A generic request body map.
+ */
 export type Body = Record<string, unknown>;
-export interface AliasType { id?: string; alias?: string; address?: string; createdAt?: string;[k: string]: unknown }
-export interface AuthType {
-    user: {
-        address: string
-        role: string
-    }
-    token: string
+
+/**
+ * Alias record returned by the backend.
+ */
+export interface AliasType {
+    id?: string;
+    alias?: string;
+    address?: string;
+    createdAt?: string;
+    [k: string]: unknown;
 }
 
-export interface UserProfile { publicKey: string; address: string; pgpPublicKey: string | null; role?: string }
+/**
+ * Auth response payload after successful authentication.
+ */
+export interface AuthType {
+    user: {
+        address: string;
+        role: string;
+    };
+    token: string;
+}
 
-interface BlindflareMeta { type: string; version: string }
-interface EncryptedEnvelope { blindflare: BlindflareMeta; cipher: string; iv?: string;[k: string]: unknown }
-interface ServerHello { serverPub?: string; sessionKeyEnc?: { data: string; iv: string; tag: string; ephemeralPublicKey: string };[k: string]: unknown }
+/**
+ * The authenticated user's profile.
+ */
+export interface UserProfile {
+    publicKey: string;
+    address: string;
+    pgpPublicKey: string | null;
+    role?: string;
+}
+
+interface ServerHello {
+    serverPub?: string;
+    sessionKeyEnc?: {
+        data: string;
+        iv: string;
+        tag: string;
+        ephemeralPublicKey: string;
+    };
+    [k: string]: unknown;
+}
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-const isEncryptedEnvelope = (v: unknown): v is EncryptedEnvelope => isObject(v) && 'blindflare' in v;
-const hasToken = (v: unknown): v is { token: string } => {
-    if (!isObject(v)) return false;
-    const tok = (v as { token?: unknown }).token;
-    return typeof tok === 'string' && tok.length > 0;
-};
+const hasToken = (v: unknown): v is { token: string } => isObject(v) && typeof (v as { token?: unknown }).token === 'string' && !!(v as { token: string }).token;
 
+/**
+ * BackendService handles the Blindflare handshake, auth, encryption and all API calls.
+ * It negotiates a session key with the server, signs requests, and transparently
+ * encrypts/decrypts payloads when supported.
+ */
 class BackendService {
-    // Base URL (trim trailing slash for consistency)
-    domain = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+    /** Base URL of the backend (no trailing slash). */
+    readonly domain = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
-    private mnemonicKey = 'bf_mnemonic';
-    private privateKey: string | null = null;
-    private publicKey: string | null = null;
+    private readonly mnemonicKey = 'bf_mnemonic';
+
+    private session: {
+        /** Ephemeral keypair used for the HELLO handshake. */
+        privateKey: string | null;
+        publicKey: string | null;
+        /** Server's public key as advertised in HELLO. */
+        serverPublicKey: string | null;
+        /** Negotiated symmetric session key. */
+        key: string | null;
+    } = { privateKey: null, publicKey: null, serverPublicKey: null, key: null };
+
+    private account: {
+        token: string | null; // reserved for future use
+        publicKey: string | null;
+        privateKey: string | null;
+    } = { token: null, publicKey: null, privateKey: null };
+
     private token: string | null = null;
-    private sessionKey: string | null = null;
-    private serverPublicKey: string | null = null;
     private helloDone = false;
     private initializing: Promise<void> | null = null;
     private readonly handshakeVersion = '1';
 
-    // --------------- Public API ---------------
-    async initWithMnemonic(mnemonic: string) {
-        localStorage.setItem(this.mnemonicKey, mnemonic.trim());
-        this.resetAuth();
-        await this.ensureSession();
+    constructor() {
+        // Restore cached state
+        const token = SessionService.getToken();
+        if (token) this.token = token;
+
+        const sessKey = SessionService.getSessionKey();
+        if (sessKey) this.session.key = sessKey;
+
+        const handshake = SessionService.getHandshakeKeys();
+        if (handshake?.privateKey && handshake?.publicKey) {
+            this.session.privateKey = handshake.privateKey;
+            this.session.publicKey = handshake.publicKey;
+        }
+
+        const account = SessionService.getAccountKeys();
+        if (account?.privateKey && account?.publicKey) {
+            this.account.privateKey = account.privateKey;
+            this.account.publicKey = account.publicKey;
+        }
+
+        // Pre-negotiate session in background
+        this.ensureHello();
     }
+
+    /** Returns the current bearer token, if any. */
     getToken() { return this.token; }
 
-    // --------------- Key Derivation ---------------
-    private async derivePrivateKeyFromMnemonic(m: string): Promise<string> {
-        const enc = new TextEncoder().encode(m.normalize('NFKD'));
-        const hash = await crypto.subtle.digest('SHA-256', enc);
-        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 64);
-    }
-    private async ensureKeyPair() {
-        if (this.privateKey && this.publicKey) return;
-        let mnemonic = localStorage.getItem(this.mnemonicKey);
-        if (!mnemonic) {
-            mnemonic = 'bullet all surprise birth layer another thought skin extra hurdle now card'; // fallback
-            localStorage.setItem(this.mnemonicKey, mnemonic);
-        }
-        this.privateKey = await this.derivePrivateKeyFromMnemonic(mnemonic);
-        const { ec } = await import('elliptic');
-        const curve = new ec('secp256k1');
-        const key = curve.keyFromPrivate(this.privateKey, 'hex');
-        this.publicKey = key.getPublic('hex');
-    }
-    private async sign(data: string): Promise<string> {
-        if (!this.privateKey) throw new Error('Private key not initialized');
-        return await Fortress.signData(data, this.privateKey);
-    }
+    /**
+     * Authenticate using a mnemonic-derived account key.
+     * - Ensures handshake and account keypair
+     * - Signs and sends AUTH
+     * - Stores received JWT
+     */
+    async auth(mnemonic: string) {
+        this.resetAuth();
+        await this.ensureHello();
+        await this.ensureAccountKeyPair(mnemonic);
 
-    // --------------- Handshakes ---------------
-    private async hello() {
-        if (this.helloDone && this.sessionKey) return;
-        if (!this.publicKey || !this.privateKey) throw new Error('Public key missing');
-        const ver = this.handshakeVersion;
-        const ts = Date.now();
-        const nonce = crypto.getRandomValues(new Uint8Array(12)).reduce((a, b) => a + b.toString(16).padStart(2, '0'), '');
-        const payload = `HELLO|${ver}|${ts}|${nonce}|${this.publicKey}`;
-        const signature = await this.sign(payload);
-        const body = { blindflare: { type: 'HELLO', ver, publicKey: this.publicKey, nonce, ts, caps: { enc: ['aes-256-gcm'], ecc: ['secp256k1'], ser: ['json'] }, signature } };
-        const res = await fetch(`${this.domain}/api/v1/blindflare/hello`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        if (!res.ok) throw new Error('HELLO failed');
-        const data = await res.json();
-        try {
-            const serverHelloRaw = data?.blindflare as unknown;
-            if (isObject(serverHelloRaw)) {
-                const serverHello = serverHelloRaw as ServerHello;
-                if (typeof serverHello.serverPub === 'string') this.serverPublicKey = serverHello.serverPub;
-                const enc = serverHello.sessionKeyEnc;
-                if (enc && typeof enc === 'object') {
-                    try {
-                        const plaintext = await Fortress.decryptWithECC(enc, this.privateKey!);
-                        const parsed = JSON.parse(plaintext);
-                        if (parsed.key && typeof parsed.key === 'string') {
-                            this.sessionKey = parsed.key;
-                            localStorage.setItem('bf_session_key', this.sessionKey!);
-                        }
-                    } catch (e) {
-                        console.warn('[Blindflare] Failed to decrypt sessionKeyEnc', e);
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn('[Blindflare] HELLO parse error', e);
-        }
-        if (!this.sessionKey) throw new Error('Session key negotiation failed');
-        this.helloDone = true;
-    }
+        if (!this.account.publicKey || !this.account.privateKey) throw new Error('Account keypair missing');
+        if (!this.session.key) throw new Error('Session key missing');
 
-    private async auth() {
-        if (this.token) return;
-        if (!this.publicKey) throw new Error('Public key missing');
-        if (!this.sessionKey) throw new Error('Session key missing');
-
-        const signature = await this.sign('AUTH');
-        const body = { blindflare: { type: 'AUTH', publicKey: this.publicKey, signature, version: Fortress.version } };
+        const signature = await this.signWith(this.account.privateKey, 'AUTH');
+        const body = { blindflare: { type: 'AUTH', publicKey: this.account.publicKey, signature, version: Fortress.version } };
         const res = await fetch(`${this.domain}/api/v1/auth`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'BF-Session-Key': await this.resealSessionKeyForServer() },
@@ -128,113 +138,261 @@ class BackendService {
         let data: unknown = null;
         try {
             const raw = await res.json();
-            data = this.sessionKey ? await Fortress.decryptTransaction<AuthType>(raw, this.sessionKey) : raw;
+            data = this.session.key ? await Fortress.decryptTransaction<AuthType>(raw, this.session.key) : raw;
         } catch {
-            console.warn('[Blindflare] Failed to parse auth response');
+            // fallthrough: data remains null
         }
 
         if (!res.ok) throw new Error('Auth failed');
         if (!hasToken(data)) throw new Error('Auth failed: no token');
+
         this.token = data.token;
-        localStorage.setItem('token', this.token);
         SessionService.setToken(this.token);
     }
 
-    private async ensureSession() {
-        if (this.token && this.helloDone) return;
+    /**
+     * Derive a 32-byte hex private key from a mnemonic using SHA-256.
+     */
+    private async derivePrivateKeyFromMnemonic(m: string): Promise<string> {
+        const enc = new TextEncoder().encode(m.normalize('NFKD'));
+        const hash = await crypto.subtle.digest('SHA-256', enc);
+        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 64);
+    }
+
+    /** Ensure the handshake keypair exists; create and cache if missing. */
+    private async ensureHandshakeKeyPair() {
+        if (this.session.privateKey && this.session.publicKey) return;
+
+        const stored = SessionService.getHandshakeKeys();
+        if (stored?.privateKey && stored?.publicKey) {
+            this.session.privateKey = stored.privateKey;
+            this.session.publicKey = stored.publicKey;
+            return;
+        }
+
+        const bytes = new Uint8Array(32);
+        crypto.getRandomValues(bytes);
+        const priv = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        const { ec } = await import('elliptic');
+        const curve = new ec('secp256k1');
+        const key = curve.keyFromPrivate(priv, 'hex');
+        const pub = key.getPublic('hex');
+        this.session.privateKey = priv;
+        this.session.publicKey = pub;
+        SessionService.setHandshakeKeys({ privateKey: priv, publicKey: pub });
+    }
+
+    /** Ensure account keypair exists; derive and cache from mnemonic if needed. */
+    private async ensureAccountKeyPair(mnemonic?: string) {
+        if (this.account.privateKey && this.account.publicKey) return;
+
+        const stored = SessionService.getAccountKeys();
+        if (stored?.privateKey && stored?.publicKey) {
+            this.account.privateKey = stored.privateKey;
+            this.account.publicKey = stored.publicKey;
+            return;
+        }
+
+        const m = mnemonic || SessionService.getMnemonic() || localStorage.getItem(this.mnemonicKey) || '';
+        if (!m) throw new Error('Mnemonic required for account auth');
+
+        const privateKey = await this.derivePrivateKeyFromMnemonic(m);
+        const { ec } = await import('elliptic');
+        const curve = new ec('secp256k1');
+        const key = curve.keyFromPrivate(privateKey, 'hex');
+        const publicKey = key.getPublic('hex');
+
+        this.account.privateKey = privateKey;
+        this.account.publicKey = publicKey;
+        SessionService.setMnemonic(m);
+        SessionService.setAccountKeys({ privateKey, publicKey });
+    }
+
+    /** Sign the given data using the provided private key through Fortress. */
+    private async signWith(privateKey: string, data: string): Promise<string> {
+        return Fortress.signData(data, privateKey);
+    }
+
+    /**
+     * Ensure we have completed HELLO and negotiated a session key.
+     * Uses an internal promise to coalesce parallel calls.
+     */
+    private async ensureHello() {
+        if (this.helloDone && this.session.key) return;
         if (this.initializing) { await this.initializing; return; }
+
         this.initializing = (async () => {
-            await this.ensureKeyPair();
+            await this.ensureHandshakeKeyPair();
             await this.hello();
-            await this.auth();
         })();
+
         try { await this.initializing; } finally { this.initializing = null; }
     }
 
-    private resetAuth() {
-        this.token = null;
-        this.sessionKey = null;
-        this.helloDone = false;
-        this.privateKey = null;
-        this.publicKey = null;
-        localStorage.removeItem('token');
-        localStorage.removeItem('bf_session_key');
+    /** Perform the HELLO handshake with the server. */
+    private async hello() {
+        if (this.helloDone && this.session.key) return;
+        if (!this.session.publicKey || !this.session.privateKey) throw new Error('Public key missing');
+
+        const ver = this.handshakeVersion;
+        const ts = Date.now();
+        const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
+        const payload = `HELLO|${ver}|${ts}|${nonce}|${this.session.publicKey}`;
+        const signature = await this.signWith(this.session.privateKey, payload);
+
+        const body = {
+            blindflare: {
+                type: 'HELLO',
+                ver,
+                publicKey: this.session.publicKey,
+                nonce,
+                ts,
+                caps: { enc: ['aes-256-gcm'], ecc: ['secp256k1'], ser: ['json'] },
+                signature
+            }
+        };
+
+        const res = await fetch(`${this.domain}/api/v1/blindflare/hello`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error('HELLO failed');
+
+        const data = await res.json();
+        try {
+            const serverHelloRaw = (data as Record<string, unknown>)?.blindflare as unknown;
+            if (isObject(serverHelloRaw)) {
+                const serverHello = serverHelloRaw as ServerHello;
+                if (typeof serverHello.serverPub === 'string') this.session.serverPublicKey = serverHello.serverPub;
+                const enc = serverHello.sessionKeyEnc;
+                if (enc && typeof enc === 'object') {
+                    try {
+                        const plaintext = await Fortress.decryptWithECC(enc, this.session.privateKey!);
+                        const parsed = JSON.parse(plaintext);
+                        if (parsed.key && typeof parsed.key === 'string') {
+                            this.session.key = parsed.key;
+                            SessionService.setSessionKey(parsed.key);
+                        }
+                    } catch (e) {
+                        console.warn('[Blindflare] Failed to decrypt sessionKeyEnc', e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[Blindflare] HELLO parse error', e);
+        }
+
+        if (!this.session.key) throw new Error('Session key negotiation failed');
+        this.helloDone = true;
     }
 
-    // --------------- Generic Request ---------------
-    async sendRequest(method: string, endpoint: string, body?: Body): Promise<{ response: Response; status: number; data: unknown }> {
-        if (!this.helloDone || !this.sessionKey) await this.ensureSession();
+    /**
+     * Clear auth and negotiated session state. Keeps handshake keys.
+     */
+    private resetAuth() {
+        this.token = null;
+        this.account.privateKey = null;
+        this.account.publicKey = null;
+        this.helloDone = false;
+
+        SessionService.clearToken();
+        SessionService.clearAccountKeys();
+        SessionService.clearSessionKey();
+
+        this.session.key = null;
+        this.session.serverPublicKey = null;
+    }
+
+    /**
+     * Send a request to the backend.
+     * - Encrypts outbound payloads when a session key is available
+     * - Decrypts inbound payloads when possible
+     */
+    public async sendRequest(method: string, endpoint: string, body?: Body): Promise<{ response: Response; status: number; data: unknown }> {
+        if (!this.helloDone || !this.session.key) await this.ensureHello();
 
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
-        if (this.sessionKey) headers['BF-Session-Key'] = await this.resealSessionKeyForServer();
+        const token = this.token || SessionService.getToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (this.session.key) headers['BF-Session-Key'] = await this.resealSessionKeyForServer();
 
         let outbound: string | undefined;
         if (method !== 'GET') {
             const meta = { type: 'TX', version: Fortress.version };
-            let treatedBody = body;
-            if (isEncryptedEnvelope(body)) {
-                try {
-                    treatedBody = await Fortress.decryptTransaction(body, this.sessionKey!);
-                } catch (e) {
-                    console.warn('[Blindflare] Failed to decrypt incoming request body', e);
-                }
-            }
-            const envelope = Fortress.encryptTransaction?.({ payload: treatedBody }, this.sessionKey!, meta) || { blindflare: meta, payload: treatedBody };
+            const envelope = await Fortress.encryptTransaction({ payload: body }, this.session.key!, meta) || { blindflare: meta, payload: body };
             outbound = JSON.stringify(envelope);
         }
 
         const response = await fetch(this.domain + endpoint, { method, headers, body: outbound });
         if (response.status === 401) { this.resetAuth(); window.location.href = '/auth'; }
 
-        const data = await Fortress.decryptTransaction(await response.json(), this.sessionKey!)
+        let data: unknown;
+        try {
+            const raw = await response.json();
+            data = await Fortress.decryptTransaction(raw, this.session.key!);
+        } catch {
+            // Fallback to raw body on parse/decrypt errors
+            try { data = await response.json(); } catch { data = null; }
+        }
 
-        return { response, status: response.status, data: data };
+        return { response, status: response.status, data };
     }
 
-    async listAliases(): Promise<AliasRecord[]> {
+    /** Retrieve all aliases for the current user. */
+    async listAliases(): Promise<AliasType[]> {
         const { data } = await this.sendRequest('GET', '/api/v1/alias');
-        return Array.isArray(data) ? data as AliasRecord[] : [];
+        return Array.isArray(data) ? (data as AliasType[]) : [];
     }
 
-    async createAlias(): Promise<AliasRecord> {
+    /** Create a new alias for the current user. */
+    async createAlias(): Promise<AliasType> {
         const { data, status } = await this.sendRequest('PUT', '/api/v1/alias', {});
         if (status >= 400) throw new Error('Alias create failed');
-        return data as AliasRecord;
+        return data as AliasType;
     }
-    async deleteAlias(record: AliasRecord): Promise<void> {
+
+    /** Delete an alias by id or alias/address value. */
+    async deleteAlias(record: AliasType): Promise<void> {
         if (record.id) { await this.sendRequest('DELETE', `/api/v1/alias/${record.id}`); return; }
         const alias = record.alias || record.address; if (alias) await this.sendRequest('DELETE', '/api/v1/alias', { alias });
     }
 
-    // --------------- User Helpers ---------------
+    /** Fetch the current user's profile. */
     async getUser(): Promise<UserProfile> {
         const { data, status } = await this.sendRequest('GET', '/api/v1/user');
         if (status >= 400) throw new Error('Failed to fetch user');
         return data as UserProfile;
     }
+
+    /** Update the current user's profile. */
     async updateUser(update: { address?: string; pgpPublicKey?: string | null }): Promise<UserProfile> {
         const { data, status } = await this.sendRequest('PATCH', '/api/v1/user', update);
         if (status >= 400) throw new Error('Failed to update user');
         return data as UserProfile;
     }
 
+    /**
+     * Wrap the negotiated session key for the server using its public key.
+     * Returns a sealed value suitable for the BF-Session-Key header.
+     */
     private async resealSessionKeyForServer(): Promise<string> {
-        if (!this.sessionKey) {
-            const stored = localStorage.getItem('bf_session_key');
-            if (stored) this.sessionKey = stored;
+        if (!this.session.key) {
+            const stored = SessionService.getSessionKey();
+            if (stored) this.session.key = stored;
         }
-        if (!this.sessionKey) {
+        if (!this.session.key) {
             console.warn('[Blindflare] Cannot seal session key: sessionKey missing');
             return '';
         }
-        const targetPub = this.serverPublicKey || this.publicKey;
+
+        const targetPub = this.session.serverPublicKey;
         if (!targetPub) {
-            console.warn('[Blindflare] Cannot seal session key: server public key unknown');
+            console.warn('[Blindflare] Cannot seal session key: server public key missing');
             return '';
         }
         try {
-            return Fortress.wrapSessionKey ? await Fortress.wrapSessionKey(targetPub, this.sessionKey) : '';
+            return Fortress.wrapSessionKey ? await Fortress.wrapSessionKey(targetPub, this.session.key) : '';
         } catch (e) {
             console.warn('[Blindflare] wrapSessionKey failed', e);
             return '';

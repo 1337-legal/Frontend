@@ -1,35 +1,60 @@
 import { Key, RefreshCw } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import Backend from '@Services/BackendService';
+import BackendService from '@Services/BackendService';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+/**
+ * PGP encryption settings tab.
+ * Lets the user save/remove an ASCII-armored PGP public key and shows a fingerprint preview.
+ */
 const EncryptionTab: React.FC = () => {
-    const qc = useQueryClient();
-    const { data: user } = useQuery({ queryKey: ['user'], queryFn: () => Backend.getUser() });
+    const queryClient = useQueryClient();
+    const { data: user } = useQuery({
+        queryKey: ['user'],
+        queryFn: () => BackendService.getUser()
+    });
 
     const [pgpKey, setPgpKey] = useState('');
     const [status, setStatus] = useState('');
 
     useEffect(() => { setPgpKey(user?.pgpPublicKey || ''); }, [user?.pgpPublicKey]);
 
-    const pgpFingerprint = useMemo(() => {
-        if (!pgpKey) return '';
-        // Simple pseudo-fingerprint: last 16 chars of a basic hash substitute
-        try {
-            const clean = pgpKey.replace(/\s+/g, '').slice(-32);
-            return clean ? `…${clean}` : '';
-        } catch { return ''; }
+    const [pgpFingerprint, setPgpFingerprint] = useState('');
+
+    useEffect(() => {
+        if (!pgpKey) {
+            setPgpFingerprint('');
+            return;
+        }
+        /**
+         * Computes a SHA-1 hex fingerprint over the provided PGP key string.
+         * This is non-standard but useful for quick visual confirmation.
+         */
+        const calcFingerprint = async () => {
+            try {
+                const hashBuffer = await window.crypto.subtle.digest('SHA-1', new TextEncoder().encode(pgpKey.trim()));
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                setPgpFingerprint(`…${hex}`);
+            } catch {
+                setPgpFingerprint('');
+            }
+        };
+        void calcFingerprint();
     }, [pgpKey]);
 
+    /** Saves the provided PGP public key to the user profile. */
     const saveMutation = useMutation({
-        mutationFn: (key: string) => Backend.updateUser({ pgpPublicKey: key }),
-        onSuccess: () => { setStatus('Key saved'); qc.invalidateQueries({ queryKey: ['user'] }); },
+        mutationFn: (key: string) => BackendService.updateUser({ pgpPublicKey: key }),
+        onSuccess: () => { setStatus('Key saved'); queryClient.invalidateQueries({ queryKey: ['user'] }); },
         onError: (e: unknown) => setStatus(e instanceof Error ? e.message : 'Save failed'),
     });
+
+    /** Removes any existing PGP public key from the user profile. */
     const removeMutation = useMutation({
-        mutationFn: () => Backend.updateUser({ pgpPublicKey: null }),
-        onSuccess: () => { setStatus('Key removed'); qc.invalidateQueries({ queryKey: ['user'] }); },
+        mutationFn: () => BackendService.updateUser({ pgpPublicKey: null }),
+        onSuccess: () => { setStatus('Key removed'); queryClient.invalidateQueries({ queryKey: ['user'] }); },
         onError: (e: unknown) => setStatus(e instanceof Error ? e.message : 'Remove failed'),
     });
 
