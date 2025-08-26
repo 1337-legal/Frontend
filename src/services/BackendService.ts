@@ -54,6 +54,9 @@ interface ServerHello {
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const hasToken = (v: unknown): v is { token: string } => isObject(v) && typeof (v as { token?: unknown }).token === 'string' && !!(v as { token: string }).token;
 
+// Add a local meta type to satisfy Fortress encryptTransaction parameter shape
+type BFMeta = { type: 'TX'; version: string; publicKey?: string; signature?: string;[k: string]: unknown };
+
 /**
  * BackendService handles the Blindflare handshake, auth, encryption and all API calls.
  * It negotiates a session key with the server, signs requests, and transparently
@@ -116,10 +119,10 @@ class BackendService {
     /**
      * Authenticate using a mnemonic-derived account key.
      * - Ensures handshake and account keypair
-     * - Signs and sends AUTH
+     * - Signs and sends AUTH via sendRequest (signature inside sealed meta)
      * - Stores received JWT
      */
-    async auth(mnemonic: string) {
+    async auth(mnemonic: string, address?: string) {
         this.resetAuth();
         await this.ensureHello();
         await this.ensureAccountKeyPair(mnemonic);
@@ -128,26 +131,18 @@ class BackendService {
         if (!this.session.key) throw new Error('Session key missing');
 
         const signature = await this.signWith(this.account.privateKey, 'AUTH');
-        const body = { blindflare: { type: 'AUTH', publicKey: this.account.publicKey, signature, version: Fortress.version } };
-        const res = await fetch(`${this.domain}/api/v1/auth`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'BF-Session-Key': await this.resealSessionKeyForServer() },
-            body: JSON.stringify(body)
-        });
+        const meta: BFMeta = { type: 'TX', version: Fortress.version };
+        const body: Body = { publicKey: this.account.publicKey, signature };
+        if (address) body.address = address;
 
-        let data: unknown = null;
-        try {
-            const raw = await res.json();
-            data = this.session.key ? await Fortress.decryptTransaction<AuthType>(raw, this.session.key) : raw;
-        } catch {
-            // fallthrough: data remains null
-        }
+        const { status, data } = await this.sendRequest('POST', '/api/v1/auth', body, meta);
 
-        if (!res.ok) throw new Error('Auth failed');
+        if (status >= 400) throw new Error('Auth failed');
         if (!hasToken(data)) throw new Error('Auth failed: no token');
 
-        this.token = data.token;
-        SessionService.setToken(this.token);
+        const token = data.token;
+        this.token = token;
+        SessionService.setToken(token);
     }
 
     /**
@@ -309,7 +304,12 @@ class BackendService {
      * - Encrypts outbound payloads when a session key is available
      * - Decrypts inbound payloads when possible
      */
-    public async sendRequest(method: string, endpoint: string, body?: Body): Promise<{ response: Response; status: number; data: unknown }> {
+    public async sendRequest(
+        method: string,
+        endpoint: string,
+        body?: Body,
+        metaOverride?: BFMeta
+    ): Promise<{ response: Response; status: number; data: unknown }> {
         if (!this.helloDone || !this.session.key) await this.ensureHello();
 
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -319,7 +319,7 @@ class BackendService {
 
         let outbound: string | undefined;
         if (method !== 'GET') {
-            const meta = { type: 'TX', version: Fortress.version };
+            const meta: BFMeta = metaOverride || { type: 'TX', version: Fortress.version };
             const envelope = await Fortress.encryptTransaction({ payload: body }, this.session.key!, meta) || { blindflare: meta, payload: body };
             outbound = JSON.stringify(envelope);
         }

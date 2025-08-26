@@ -1,7 +1,7 @@
 import {
     ArrowLeft, Check, Clipboard, Download, ExternalLink, KeyRound, Mail, Terminal
 } from 'lucide-react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router';
 
@@ -44,10 +44,10 @@ const Auth: React.FC = () => {
         defaultValues: { email: '', pgp: '' }
     });
 
-    const onValidated = async (m: string) => {
+    const onValidated = async (m: string, address?: string) => {
         try {
             setAuthLoading(true);
-            await BackendService.auth(m);
+            await BackendService.auth(m, address);
             navigate('/account');
         } catch (e) {
             console.error(e);
@@ -114,8 +114,7 @@ const Auth: React.FC = () => {
     const stepTitle = mode === 'choose' ? 'Choose how to continue' : mode === 'have' ? 'Enter your mnemonic' : mode === 'new' ? 'Start with your email' : mode === 'verify' ? 'Check your inbox' : 'Save your mnemonic';
     const stepNum = mode === 'choose' ? 1 : mode === 'show' ? 4 : mode === 'verify' ? 3 : 2;
 
-    // Allow quick recovery from misclicks with Esc
-    React.useEffect(() => {
+    useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
             if (e.key !== 'Escape') return;
             if (mode === 'show') setMode('new');
@@ -275,7 +274,7 @@ const Auth: React.FC = () => {
                                         aria-label="verification code"
                                         value={code}
                                         onChange={e => setCode(e.target.value)}
-                                        placeholder="example: garden mirror cotton"
+                                        placeholder="hate cloud flare"
                                         className="w-full rounded-md bg-neutral-900/60 border border-neutral-800 px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/30"
                                     />
                                 </div>
@@ -313,7 +312,7 @@ const Auth: React.FC = () => {
                                     {copied ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
                                     {copied ? 'Copied' : 'Copy all'}
                                 </button>
-                                <button type="button" disabled={authLoading} onClick={() => onValidated(generatedMnemonic)} className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 disabled:opacity-60">
+                                <button type="button" disabled={authLoading} onClick={() => onValidated(generatedMnemonic, pendingEmail)} className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 disabled:opacity-60">
                                     {authLoading ? 'Signing in…' : 'Use this mnemonic'}
                                 </button>
                             </div>
@@ -321,8 +320,6 @@ const Auth: React.FC = () => {
                         </div>
                     )}
                 </div>
-
-                {/* Alternatives & Power Tools */}
                 <section className="mt-10">
                     <h2 className="font-semibold tracking-tight text-lg mb-3">Alternatives & Power Tools</h2>
                     <div className="grid gap-4 sm:grid-cols-2">
