@@ -13,27 +13,30 @@ interface Props { onValidated?: (mnemonic: string) => void; }
 type FormValues = { words: string[] };
 
 const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
-    const { register, setValue, watch } = useForm<FormValues>({ defaultValues: { words: Array(12).fill('') } });
-    const words = watch('words');
-    const mnemonic = (words || []).join(' ').trim();
+    // enforce 24 words
+    const WORD_COUNT = 24;
+    const { register, setValue, watch } = useForm<FormValues>({ defaultValues: { words: Array(24).fill('') } });
+    const words = watch('words') || [];
+    const mnemonic = words.slice(0, WORD_COUNT).join(' ').trim();
 
     const [show, setShow] = useState(false);
     const [error, setError] = useState('');
-    const filled = (words || []).filter(Boolean).length;
-    const [suggestions, setSuggestions] = useState<string[][]>(Array.from({ length: 12 }, () => []));
-    const [highlight, setHighlight] = useState<number[]>(Array(12).fill(-1));
+    const filled = words.slice(0, WORD_COUNT).filter(Boolean).length;
+    const [suggestions, setSuggestions] = useState<string[][]>(Array.from({ length: 24 }, () => []));
+    const [highlight, setHighlight] = useState<number[]>(Array(24).fill(-1));
     const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
     const applyMnemonic = useCallback((m: string) => {
-        const w = splitWords(m).slice(0, 12);
-        const next = Array.from({ length: 12 }, (_, i) => w[i] || '');
-        next.forEach((val, i) => setValue(`words.${i}` as const, val, { shouldDirty: true, shouldTouch: true }));
+        const w = splitWords(m).slice(0, 24);
+        Array.from({ length: 24 }, (_, i) => w[i] || '').forEach((val, i) => {
+            setValue(`words.${i}` as const, val, { shouldDirty: true, shouldTouch: true });
+        });
     }, [setValue]);
 
     const validateMutation = useMutation({
         mutationFn: async (m: string) => {
             const w = splitWords(m);
-            if (w.length !== 12) throw new Error('Need exactly 12 words.');
+            if (w.length !== 24) throw new Error('Need exactly 24 words.');
             if (!validateMnemonic(m, english)) throw new Error('Invalid BIP39 checksum.');
             return m;
         },
@@ -82,11 +85,11 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
             <header className="mb-6 space-y-3">
                 <h1 className="font-cal text-3xl tracking-tight md:text-4xl">
                     Secure Sign‑In
-                    <span className="block bg-gradient-to-r from-orange-400 via-orange-300 to-amber-200 bg-clip-text font-semibold text-transparent">12‑Word Mnemonic</span>
+                    <span className="block bg-gradient-to-r from-orange-400 via-orange-300 to-amber-200 bg-clip-text font-semibold text-transparent">24‑Word Mnemonic</span>
                 </h1>
-                <p className="max-w-2xl text-xs md:text-sm text-neutral-400">Enter your 12‑word mnemonic. This never leaves your device; only derived keys are transmitted.</p>
+                <p className="max-w-2xl text-xs md:text-sm text-neutral-400">Enter your 24‑word mnemonic. This never leaves your device; only derived keys are transmitted.</p>
                 <div className="flex flex-wrap gap-2 pt-0">
-                    <button onClick={() => validateMutation.mutate(mnemonic)} disabled={filled !== 12 || validateMutation.isPending} className="inline-flex items-center rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:border-orange-500/60 hover:text-orange-200 disabled:opacity-50">
+                    <button onClick={() => validateMutation.mutate(mnemonic)} disabled={filled !== WORD_COUNT || validateMutation.isPending} className="inline-flex items-center rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:border-orange-500/60 hover:text-orange-200 disabled:opacity-50">
                         {validateMutation.isPending ? 'Validating...' : 'Sign In'}
                     </button>
                     <button onClick={() => setShow(s => !s)} className="inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-medium text-neutral-400 transition hover:text-orange-300">
@@ -96,8 +99,9 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
             </header>
             <div className="mb-3">
                 <div className="grid grid-cols-3 gap-2">
-                    {(words || []).map((w, i) => {
+                    {Array.from({ length: WORD_COUNT }, (_, i) => {
                         const { ref: fieldRef, name, onBlur } = register(`words.${i}` as const);
+                        const w = words[i] || '';
                         return (
                             <div key={i} className="group relative">
                                 <div className="absolute inset-0 rounded-md bg-gradient-to-br from-orange-500/15 via-amber-400/10 to-transparent opacity-0 transition-opacity group-hover:opacity-70 group-focus-within:opacity-100" />
@@ -107,7 +111,7 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
                                     name={name}
                                     onBlur={onBlur}
                                     aria-label={`word ${i + 1}`}
-                                    value={w || ''}
+                                    value={w}
                                     onChange={e => onWordChange(i, e.target.value)}
                                     onPaste={onWordPaste}
                                     onKeyDown={e => handleKeyDown(e, i)}
@@ -140,9 +144,9 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
                 </div>
                 <div className="mt-2">
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
-                        <div className="h-full bg-gradient-to-r from-orange-600 via-amber-400 to-orange-300 transition-all duration-500" style={{ width: `${(filled / 12) * 100}%` }} />
+                        <div className="h-full bg-gradient-to-r from-orange-600 via-amber-400 to-orange-300 transition-all duration-500" style={{ width: `${(filled / WORD_COUNT) * 100}%` }} />
                     </div>
-                    <p className="mt-1 text-[9px] font-medium tracking-wide text-neutral-500">{filled}/12 words {filled === 12 ? <span className="text-orange-300 ml-1">ready</span> : <span className="ml-1 text-neutral-600">fill all words</span>}</p>
+                    <p className="mt-1 text-[9px] font-medium tracking-wide text-neutral-500">{filled}/{WORD_COUNT} words {filled === WORD_COUNT ? <span className="text-orange-300 ml-1">ready</span> : <span className="ml-1 text-neutral-600">fill all words</span>}</p>
                 </div>
             </div>
             {error && <p className="mb-4 text-xs text-red-400">{error}</p>}
