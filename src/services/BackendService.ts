@@ -134,7 +134,6 @@ class BackendService {
         const meta: BFMeta = { type: 'TX', version: Fortress.version };
         const body: Body = { publicKey: this.account.publicKey, signature };
         if (address) body.address = address;
-
         const { status, data } = await this.sendRequest('POST', '/api/v1/auth', body, meta);
 
         if (status >= 400) throw new Error('Auth failed');
