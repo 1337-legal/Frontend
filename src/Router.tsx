@@ -6,6 +6,7 @@ import Auth from '@Pages/Auth';
 import Home from '@Pages/Home';
 import NotFound from '@Pages/NotFound';
 import Privacy from '@Pages/Privacy';
+import Roadmap from '@Pages/Roadmap';
 import Terms from '@Pages/Terms';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -19,6 +20,11 @@ const router = createBrowserRouter([
     {
         path: '/auth',
         element: <Auth />,
+        errorElement: <NotFound />
+    },
+    {
+        path: '/roadmap',
+        element: <Roadmap />,
         errorElement: <NotFound />
     },
     {

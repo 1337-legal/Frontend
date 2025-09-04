@@ -66,8 +66,6 @@ class BackendService {
     /** Base URL of the backend (no trailing slash). */
     readonly domain = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
-    private readonly mnemonicKey = 'bf_mnemonic';
-
     private session: {
         /** Ephemeral keypair used for the HELLO handshake. */
         privateKey: string | null;
@@ -187,7 +185,7 @@ class BackendService {
             return;
         }
 
-        const m = mnemonic || SessionService.getMnemonic() || localStorage.getItem(this.mnemonicKey) || '';
+        const m = mnemonic;
         if (!m) throw new Error('Mnemonic required for account auth');
 
         const privateKey = await this.derivePrivateKeyFromMnemonic(m);
@@ -198,7 +196,7 @@ class BackendService {
 
         this.account.privateKey = privateKey;
         this.account.publicKey = publicKey;
-        SessionService.setMnemonic(m);
+        // Do not persist plaintext mnemonic; only cache derived keys
         SessionService.setAccountKeys({ privateKey, publicKey });
     }
 

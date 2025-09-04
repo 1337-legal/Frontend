@@ -16,17 +16,21 @@ export const HeroSection: React.FC = () => (
             <Badge variant="outline" className="border-orange-400/50 bg-neutral-900/60 text-orange-300 backdrop-blur">
                 <Spark className="mr-1" /> 1337 Powered
             </Badge>
-            <Badge className="bg-orange-600/25 text-orange-200 hover:bg-orange-600/30">MVP</Badge>
+            <Badge className="bg-orange-600/25 text-orange-200 hover:bg-orange-600/30">Beta</Badge>
         </div>
         <h1 className="text-balance font-cal text-4xl leading-tight tracking-tight md:text-6xl text-neutral-100 animate-fade-in-up">
             Private Email Aliases
             <span className="block bg-gradient-to-r from-orange-400 via-orange-300 to-amber-200 bg-clip-text font-semibold text-transparent">Simple. Encrypted. Yours.</span>
         </h1>
+        <span aria-hidden className="block h-px w-24 bg-gradient-to-r from-orange-400/60 to-transparent animate-fade-in-up-delayed" />
         <p className="max-w-2xl text-lg text-neutral-400 md:text-xl animate-fade-in-up-delayed">
-            Create and use clean, disposable email aliases that keep your real address hidden. Every request you make is sealed using Blindflare — so platforms and network edges only see an unreadable envelope. <span className="text-orange-300/90 font-medium">No content logs. No IP logs. Nothing to correlate you. PGP Features.</span>
+            Create and use clean, disposable email aliases that keep your real address hidden — with no content logs, no IP logs, and nothing to correlate you.
+        </p>
+        <p className="max-w-2xl text-base md:text-lg text-neutral-400/90 italic animate-fade-in-up-long">
+            Because sometimes you want to be sure the flaw is not your mail.
         </p>
         <div className="flex flex-wrap gap-4">
-            <Button size="lg" className="group bg-orange-500 text-neutral-900 hover:bg-orange-400" asChild>
+            <Button size="lg" className="group bg-orange-500 text-neutral-900 hover:bg-orange-400 shadow-sm hover:shadow-md transition-shadow" asChild>
                 <Link to="/auth">
                     Get Started <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>

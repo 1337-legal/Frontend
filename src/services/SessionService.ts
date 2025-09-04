@@ -6,6 +6,7 @@ class SessionService {
         account: 'bf_account_keys',
         sessionKey: 'bf_session_key',
         mnemonic: 'bf_mnemonic',
+        mnemonicEnc: 'bf_mnemonic_enc',
     } as const;
 
     // ------- Token -------
@@ -69,15 +70,29 @@ class SessionService {
         localStorage.removeItem(this.STORAGE_KEYS.sessionKey);
     }
 
-    // ------- Mnemonic (optional persistence) -------
-    public setMnemonic(m: string) {
-        localStorage.setItem(this.STORAGE_KEYS.mnemonic, m);
+    // ------- Mnemonic (plaintext) DEPRECATED -------
+    public setMnemonic(_m: string) {
+        // Deprecated: do not persist plaintext; ensure legacy key is removed
+        void _m; // mark as used
+        try { localStorage.removeItem(this.STORAGE_KEYS.mnemonic); } catch (e) { console.warn('clear mnemonic failed', e); }
     }
     public getMnemonic(): string | null {
-        return localStorage.getItem(this.STORAGE_KEYS.mnemonic);
+        // Deprecated: stop returning plaintext mnemonic
+        return null;
     }
     public clearMnemonic() {
         localStorage.removeItem(this.STORAGE_KEYS.mnemonic);
+    }
+
+    // ------- Encrypted Mnemonic -------
+    public setEncryptedMnemonic(blob: string) {
+        localStorage.setItem(this.STORAGE_KEYS.mnemonicEnc, blob);
+    }
+    public getEncryptedMnemonic(): string | null {
+        return localStorage.getItem(this.STORAGE_KEYS.mnemonicEnc);
+    }
+    public clearEncryptedMnemonic() {
+        localStorage.removeItem(this.STORAGE_KEYS.mnemonicEnc);
     }
 }
 
