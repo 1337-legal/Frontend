@@ -1,17 +1,10 @@
 import { ArrowLeft } from 'lucide-react';
 import React from 'react';
-import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
+import { Link } from 'react-router';
 
 import AuthNebulaScene from '@Features/auth/components/AuthNebulaScene';
 
 const NotFound: React.FC = () => {
-    const error = useRouteError();
-    const is404 = isRouteErrorResponse(error) && error.status === 404;
-    const title = is404 ? 'Page Not Found' : 'Unexpected Error';
-    const status = isRouteErrorResponse(error) ? error.status : 404;
-    const message = isRouteErrorResponse(error)
-        ? (error.statusText || 'The page you are looking for does not exist.')
-        : 'Something went wrong.';
 
     return (
         <div className="relative min-h-screen w-full overflow-hidden bg-neutral-950 text-neutral-100">
@@ -23,13 +16,13 @@ const NotFound: React.FC = () => {
             </div>
             <main className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-6 py-36 text-center md:py-48">
                 <div className="mb-10 inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-neutral-900/60 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-orange-300">
-                    <span>{status}</span>
+                    <span>404</span>
                     <span className="h-1 w-1 rounded-full bg-orange-400/60" />
                     <span>routing error</span>
                 </div>
-                <h1 className="mb-4 bg-gradient-to-br from-orange-200 via-orange-400 to-rose-400 bg-clip-text text-5xl font-bold tracking-tight text-transparent md:text-6xl">{title}</h1>
+                <h1 className="mb-4 pb-2 overflow-visible leading-[1.2] bg-gradient-to-br from-orange-200 via-orange-400 to-rose-400 bg-clip-text text-5xl font-bold tracking-tight text-transparent md:text-6xl">Page Not Found</h1>
                 <p className="mx-auto mb-10 max-w-xl text-sm leading-relaxed text-neutral-400">
-                    {message} If you believe this is an issue, please return home or open an issue in our public repositories.
+                    The page you are looking for does not exist. If you believe this is an issue, please return home or open an issue in our public repositories.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
                     <Link to="/" className="inline-flex items-center rounded-md bg-orange-500 px-4 py-2 font-semibold text-neutral-900 shadow transition hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60">

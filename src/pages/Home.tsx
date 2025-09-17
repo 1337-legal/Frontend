@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router';
 
 import BenefitsCard from '@Features/home/components/BenefitsCard';
 import FeatureGrid from '@Features/home/components/FeatureGrid';
@@ -6,8 +7,23 @@ import HeroSection from '@Features/home/components/HeroSection';
 import InfrastructurePostureSection from '@Features/home/components/InfrastructurePostureSection';
 import PrivacyEnvelopeCard from '@Features/home/components/PrivacyEnvelopeCard';
 import SiteFooter from '@Features/home/components/SiteFooter';
+import SessionService from '@Services/SessionService';
 
 const Home: React.FC = () => {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const isMobile = window.matchMedia('(max-width: 640px)').matches;
+        console.log('isMobile', isMobile);
+        if (!isMobile) return;
+        const hasEncrypted = !!SessionService.getEncryptedMnemonic();
+        console.log('hasEncrypted', hasEncrypted);
+        if (hasEncrypted) {
+            navigate('/auth')
+            return;
+        }
+    }, [navigate]);
     return (
         <div className="relative min-h-screen w-full overflow-hidden bg-neutral-950 text-neutral-100">
             <style>{`

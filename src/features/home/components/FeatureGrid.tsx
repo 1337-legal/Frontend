@@ -58,7 +58,6 @@ export const FeatureGrid: React.FC = () => (
                         className="group relative overflow-hidden border-neutral-800 bg-neutral-950/50 backdrop-blur-sm transition hover:border-orange-500/50 hover:shadow-[0_0_0_1px_rgba(251,146,60,0.35),0_8px_30px_-8px_rgba(251,146,60,0.4)] opacity-0 animate-fade-in-up"
                         style={{ animationDelay: `${80 * i}ms` }}
                     >
-                        {/* Three.js animated background */}
                         <div className="pointer-events-none absolute inset-0 opacity-70 transition-opacity duration-300 group-hover:opacity-90">
                             <ThreeCardOrb className="absolute inset-0" />
                             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/30" />
