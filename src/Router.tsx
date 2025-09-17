@@ -7,6 +7,7 @@ import Home from '@Pages/Home';
 import NotFound from '@Pages/NotFound';
 import Privacy from '@Pages/Privacy';
 import Roadmap from '@Pages/Roadmap';
+import Status from '@Pages/Status';
 import Terms from '@Pages/Terms';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -35,6 +36,11 @@ const router = createBrowserRouter([
     {
         path: '/privacy',
         element: <Privacy />,
+        errorElement: <NotFound />
+    },
+    {
+        path: '/status',
+        element: <Status />,
         errorElement: <NotFound />
     },
     {

@@ -9,7 +9,7 @@ import react from '@vitejs/plugin-react-swc';
 export default defineConfig({
   plugins: [react(), tailwindcss(), VitePWA({
     registerType: 'autoUpdate',
-    includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+    includeAssets: ['favicon.png', 'robots.txt'],
     manifest: {
       name: '1337',
       short_name: '1337',
@@ -17,17 +17,17 @@ export default defineConfig({
       theme_color: '#0a0a0a',
       icons: [
         {
-          src: 'pwa-192x192.png',
+          src: 'favicon.png',
           sizes: '192x192',
           type: 'image/png',
         },
         {
-          src: 'pwa-512x512.png',
+          src: 'favicon.png',
           sizes: '512x512',
           type: 'image/png',
         },
         {
-          src: 'pwa-512x512.png',
+          src: 'favicon.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any maskable',

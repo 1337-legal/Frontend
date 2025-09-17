@@ -1,35 +1,43 @@
 import { useMemo, useRef } from 'react';
 
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 
 import type { Points } from 'three';
 
 function ParticleCloud({ color = '#f59e0b' }: { color?: string }) {
     const ref = useRef<Points>(null!);
-    const positions = useMemo(() => {
-        const count = 600;
-        const arr = new Float32Array(count * 3);
-        for (let i = 0; i < count; i++) {
-            // random in sphere
-            const r = Math.cbrt(Math.random()) * 1.8;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            const x = r * Math.sin(phi) * Math.cos(theta);
-            const y = r * Math.sin(phi) * Math.sin(theta);
-            const z = r * Math.cos(phi);
-            arr[i * 3 + 0] = x;
-            arr[i * 3 + 1] = y;
-            arr[i * 3 + 2] = z;
-        }
-        return arr;
-    }, []);
+    const { width: vw, height: vh } = useThree((s) => s.viewport);
 
-    useFrame((state) => {
-        const t = state.clock.getElapsedTime();
-        if (ref.current) {
-            ref.current.rotation.x = Math.sin(t * 0.2) * 0.2;
-            ref.current.rotation.y = t * 0.18;
+    const { positions, speeds } = useMemo(() => {
+        const count = 1100;
+        const pos = new Float32Array(count * 3);
+        const spd = new Float32Array(count);
+        for (let i = 0; i < count; i++) {
+            const x = (Math.random() - 0.5) * vw;
+            const y = (Math.random() - 0.5) * vh;
+            const z = (Math.random() - 0.5) * 0.8;
+            pos[i * 3] = x;
+            pos[i * 3 + 1] = y;
+            pos[i * 3 + 2] = z;
+            spd[i] = 0.15 + Math.random() * 6;
         }
+        return { positions: pos, speeds: spd };
+    }, [vw, vh]);
+
+    useFrame((_state, delta) => {
+        const pts = ref.current;
+        if (!pts) return;
+        const attr = pts.geometry.attributes.position;
+        const arr = attr.array as Float32Array;
+        const halfW = vw / 2;
+        for (let i = 0; i < speeds.length; i++) {
+            const idx = i * 3;
+            arr[idx] += speeds[i] * delta;
+            if (arr[idx] > halfW) {
+                arr[idx] = -halfW;
+            }
+        }
+        attr.needsUpdate = true;
     });
 
     return (
@@ -38,7 +46,7 @@ function ParticleCloud({ color = '#f59e0b' }: { color?: string }) {
                 {/* @ts-expect-error - R3F attach string for BufferAttribute */}
                 <bufferAttribute attach="attributes-position" array={positions} count={positions.length / 3} itemSize={3} />
             </bufferGeometry>
-            <pointsMaterial color={color} size={0.035} sizeAttenuation depthWrite={false} transparent opacity={0.85} />
+            <pointsMaterial color={color} size={0.032} sizeAttenuation depthWrite={false} transparent opacity={0.85} />
         </points>
     );
 }
@@ -51,8 +59,7 @@ export default function ThreeCardOrb({ className }: { className?: string }) {
                 <fog attach="fog" args={['#050505', 6, 14]} />
                 <group position={[0, 0, 0]}>
                     <ParticleCloud color="#ff9d57" />
-                    {/* slight parallax layer */}
-                    <group position={[0, 0, -0.8]}>
+                    <group position={[0, 0, -0.6]}>
                         <ParticleCloud color="#ff6a00" />
                     </group>
                 </group>

@@ -1,4 +1,4 @@
-import Fortress from '@blindflare/Fortress';
+import Fortress from '@blindflare/fortress';
 
 import SessionService from './SessionService';
 
