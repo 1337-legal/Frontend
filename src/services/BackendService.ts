@@ -1,3 +1,4 @@
+import { isOnion } from '@/lib/utils';
 import Fortress from '@blindflare/fortress';
 
 import SessionService from './SessionService';
@@ -64,7 +65,7 @@ type BFMeta = { type: 'TX'; version: string; publicKey?: string; signature?: str
  */
 class BackendService {
     /** Base URL of the backend (no trailing slash). */
-    readonly domain = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+    readonly domain = (isOnion() ? import.meta.env.VITE_TOR_BACKEND_URL : import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
     private session: {
         /** Ephemeral keypair used for the HELLO handshake. */
