@@ -44,7 +44,7 @@ export const HeroSection: React.FC = () => (
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button size="lg" variant="ghost" className="text-neutral-400 hover:text-orange-300 hover:bg-transparent focus-visible:bg-transparent active:bg-transparent" asChild>
-                            <Link to="/swagger">
+                            <Link to="https://api.1337.legal/swagger" target='_blank'>
                                 <Zap className="mr-2 h-4 w-4" /> Swagger
                             </Link>
                         </Button>

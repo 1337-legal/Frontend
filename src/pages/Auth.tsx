@@ -539,8 +539,8 @@ const Auth: React.FC = () => {
                             </div>
                             <p className="mb-3 text-[11px] text-neutral-500 leading-relaxed">Scriptable auth and alias operations.</p>
                             <div className="flex flex-wrap gap-1.5">
-                                <Link to="/swagger" className="inline-flex items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1 text-[10px] font-semibold text-neutral-900 hover:bg-orange-400">
-                                    OpenAPI
+                                <Link to="https://api.1337.legal/swagger" target='_blank' className="inline-flex items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1 text-[10px] font-semibold text-neutral-900 hover:bg-orange-400">
+                                    Swagger
                                 </Link>
                                 <a href="https://github.com/1337-legal/cli" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md border border-neutral-700 bg-neutral-800/60 px-2.5 py-1 text-[10px] font-semibold text-neutral-200 hover:border-orange-500/50 hover:text-orange-200">
                                     CLI Repo <ExternalLink className="h-3 w-3" />
