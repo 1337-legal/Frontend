@@ -9,7 +9,7 @@ import InfrastructurePostureSection from '@Features/home/components/Infrastructu
 import OnionActive from '@Features/home/components/OnionActive';
 import OnionInactive from '@Features/home/components/OnionInactive';
 import PrivacyEnvelopeCard from '@Features/home/components/PrivacyEnvelopeCard';
-import SiteFooter from '@Features/home/components/SiteFooter';
+import SiteFooter from '@Features/shared/components/SiteFooter';
 import SessionService from '@Services/SessionService';
 
 const Home: React.FC = () => {

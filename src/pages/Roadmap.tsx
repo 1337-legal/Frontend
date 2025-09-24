@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { Badge } from '@Components/ui/badge';
 import { Button } from '@Components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@Components/ui/card';
+import SiteFooter from '@Features/shared/components/SiteFooter';
 
 const Roadmap: React.FC = () => {
     return (
@@ -114,6 +115,7 @@ const Roadmap: React.FC = () => {
                     <p className="mt-4 text-xs text-neutral-500">Timelines and items are subject to change. We’ll update this page as work lands.</p>
                 </section>
             </main>
+            <SiteFooter />
         </div>
     );
 };

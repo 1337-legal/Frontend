@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { Badge } from '@Components/ui/badge';
 import { Button } from '@Components/ui/button';
+import SiteFooter from '@Features/shared/components/SiteFooter';
 
 const Privacy: React.FC = () => {
     return (
@@ -65,6 +66,7 @@ const Privacy: React.FC = () => {
                     <p className="text-xs text-neutral-500">Alpha build. Questions: <a href="mailto:privacy@1337.legal" className="text-orange-300 hover:underline">privacy@1337.legal</a>. Last updated {new Date().toISOString().split('T')[0]}.</p>
                 </section>
             </main>
+            <SiteFooter />
         </div>
     );
 };
