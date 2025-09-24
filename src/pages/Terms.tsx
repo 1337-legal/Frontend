@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { Badge } from '@Components/ui/badge';
 import { Button } from '@Components/ui/button';
+import SiteFooter from '@Features/shared/components/SiteFooter';
 
 const Terms: React.FC = () => {
     return (
@@ -70,6 +71,7 @@ const Terms: React.FC = () => {
                     <p className="text-xs text-neutral-500">Questions: <a href="mailto:legal@1337.legal" className="text-orange-300 hover:underline">legal@1337.legal</a>. Last updated {new Date().toISOString().split('T')[0]}.</p>
                 </section>
             </main>
+            <SiteFooter />
         </div>
     );
 };

@@ -6,6 +6,7 @@ import { Link } from 'react-router';
 
 import { Badge } from '@Components/ui/badge';
 import { Button } from '@Components/ui/button';
+import SiteFooter from '@Features/shared/components/SiteFooter';
 
 const Status: React.FC = () => {
     return (
@@ -98,7 +99,7 @@ const Status: React.FC = () => {
                     </p>
                 </section>
             </main>
-            <div className="pointer-events-none fixed inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/70 to-transparent" />
+            <SiteFooter />
         </div>
     );
 };

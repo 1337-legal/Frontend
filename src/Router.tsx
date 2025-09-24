@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router/dom';
 import Account from '@Pages/Account';
 import Auth from '@Pages/Auth';
 import Home from '@Pages/Home';
+import License from '@Pages/License';
 import NotFound from '@Pages/NotFound';
 import Privacy from '@Pages/Privacy';
 import Roadmap from '@Pages/Roadmap';
@@ -17,6 +18,11 @@ const router = createBrowserRouter([
         element: <Home />,
         errorElement: <NotFound />,
         children: []
+    },
+    {
+        path: '/license',
+        element: <License />,
+        errorElement: <NotFound />
     },
     {
         path: '/auth',
