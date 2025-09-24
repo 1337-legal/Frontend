@@ -2,6 +2,10 @@ import { Icon } from 'lucide-react';
 
 import { onion } from '@lucide/lab';
 
-export const OnionIcon = () => (
-    <Icon iconNode={onion} />
+type Props = {
+    className?: string;
+};
+
+export const OnionIcon = ({ className }: Props) => (
+    <Icon iconNode={onion} className={className} />
 );

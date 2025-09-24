@@ -1,4 +1,5 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { OnionIcon } from '@Components/icons/Onion';
 import { Button } from '@Components/ui/button';
 
 const OnionActive = () => {
@@ -29,7 +30,7 @@ const OnionActive = () => {
                                                    border border-amber-300/35 shadow-inner shadow-amber-100/10
                                                    animate-[onionGlow_6s_ease-in-out_infinite]"
                             >
-                                <span className="text-lg leading-none drop-shadow">🧅</span>
+                                <span className="text-lg leading-none drop-shadow"><OnionIcon className='text-amber-300' /></span>
                                 <span className="absolute inset-0 rounded-full border border-amber-300/25 animate-[spin_14s_linear_infinite]" />
                                 <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500
                                                          bg-gradient-to-tr from-fuchsia-500/30 to-amber-400/30 mix-blend-screen" />

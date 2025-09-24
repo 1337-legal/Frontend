@@ -1,4 +1,4 @@
-import { AlertCircle, Clipboard, Plus, RefreshCw } from 'lucide-react';
+import { AlertCircle, Plus, RefreshCw } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@Components/ui/button';
@@ -80,31 +80,27 @@ const AutofillTab: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-end">
-                        <div className="flex-1 min-w-[240px]">
-                            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-neutral-500">Current Alias</label>
-                            <div className="flex items-stretch rounded-md border border-neutral-800/60 bg-neutral-950/50 focus-within:border-orange-500/50">
-                                <input
-                                    value={aliasValue}
-                                    readOnly
-                                    placeholder="(none yet)"
-                                    className="flex-1 bg-transparent px-2 text-center py-2 text-[11px] font-mono text-orange-200 placeholder-neutral-600 outline-none"
-                                />
-                                <Button onClick={copy} disabled={!aliasValue} className="px-2 text-[10px] font-medium text-neutral-400 hover:text-orange-300 disabled:opacity-40" aria-live="polite">{copied ? 'Copied' : <Clipboard className="h-3.5 w-3.5" />}</Button>
-                            </div>
+                    <div className="relative">
+                        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-neutral-500">Current Alias</label>
+                        <div className="flex items-stretch rounded-md border border-neutral-800/60 bg-neutral-950/50 focus-within:border-orange-500/50">
+                            <input
+                                value={aliasValue}
+                                readOnly
+                                placeholder="(none yet)"
+                                onClick={() => { void copy(); }}
+                                onFocus={(e) => e.currentTarget.select()}
+                                title={aliasValue ? 'Tap to copy' : ''}
+                                className={`flex-1 bg-transparent px-2 py-2 text-center text-[11px] font-mono placeholder-neutral-600 outline-none ${aliasValue ? 'cursor-pointer text-orange-200' : 'text-neutral-500'}`}
+                            />
+                            <Button onClick={handleGenerate} disabled={quickCreating} className="inline-flex shrink-0 items-center rounded-none rounded-r-md bg-orange-500 px-3 py-2 text-[11px] font-semibold text-neutral-900 shadow hover:bg-orange-400 disabled:opacity-50 whitespace-nowrap">
+                                {quickCreating ? <RefreshCw className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Plus className="mr-1 h-3.5 w-3.5" />} {quickCreating ? 'Generating...' : 'Generate'}
+                            </Button>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="relative">
-                                <Button onClick={handleGenerate} disabled={quickCreating} className="inline-flex items-center rounded-md bg-orange-500 px-4 py-2 text-[11px] font-semibold text-neutral-900 shadow hover:bg-orange-400 disabled:opacity-50">
-                                    {quickCreating ? <RefreshCw className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Plus className="mr-1 h-3.5 w-3.5" />} {quickCreating ? 'Generating...' : 'Generate'}
-                                </Button>
-                                {copied && (
-                                    <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full rounded-md border border-neutral-800/60 bg-neutral-900/90 px-2 py-1 text-[10px] font-medium text-orange-300 shadow">
-                                        Copied
-                                    </div>
-                                )}
+                        {copied && (
+                            <div className="pointer-events-none absolute left-1/2 -top-1.5 -translate-x-1/2 -translate-y-full rounded-md border border-neutral-800/60 bg-neutral-900/90 px-2 py-1 text-[10px] font-medium text-orange-300 shadow">
+                                Copied
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {!extensionDetected && (

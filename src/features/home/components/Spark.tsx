@@ -2,7 +2,7 @@ import React from 'react';
 
 export const Spark: React.FC<{ className?: string; size?: number }> = ({ className = '', size = 12 }) => (
     <span
-        className={`inline-flex items-center justify-center pointer-events-none ${className}`}
+        className={`inline-flex items-center justify-center align-middle leading-none pointer-events-none ${className}`}
         style={{ width: size, height: size }}
     >
         <svg
