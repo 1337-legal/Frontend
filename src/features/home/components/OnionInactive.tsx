@@ -1,4 +1,5 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { OnionIcon } from '@Components/icons/Onion';
 import { Button } from '@Components/ui/button';
 
 const OnionInactive = () => {
@@ -26,7 +27,7 @@ const OnionInactive = () => {
                                                    bg-gradient-to-br from-fuchsia-500/25 to-amber-400/25
                                                    border border-fuchsia-300/40 shadow-inner shadow-fuchsia-100/10"
                             >
-                                <span className="text-lg leading-none">🧅</span>
+                                <span className="text-lg leading-none"><OnionIcon className='text-amber-300' /></span>
                             </span>
                             <span className="whitespace-nowrap flex items-center gap-1">
                                 <span className="hidden sm:inline leading-none">Use onion edge</span>

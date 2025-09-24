@@ -35,7 +35,12 @@ export const HeroSection: React.FC = () => (
                     Get Started <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-neutral-700 bg-neutral-900/40 backdrop-blur hover:bg-neutral-800/60" asChild>
+            <Button
+                size="lg"
+                variant="outline"
+                className="border-neutral-700 hover:border-neutral-600 text-neutral-200 hover:text-neutral-100 bg-neutral-900/40 backdrop-blur hover:bg-neutral-800/60 transition-colors"
+                asChild
+            >
                 <a href="https://github.com/1337-legal" target="_blank" rel="noopener noreferrer">
                     <Github className="mr-2 h-4 w-4" /> GitHub
                 </a>
