@@ -1,4 +1,4 @@
-import { isOnion } from '@/lib/utils';
+import {isOnion} from '@/lib/utils';
 import Fortress from '@blindflare/fortress';
 
 import SessionService from './SessionService';
@@ -141,6 +141,93 @@ class BackendService {
         const token = data.token;
         this.token = token;
         SessionService.setToken(token);
+    }
+
+    /**
+     * Send a request to the backend.
+     * - Encrypts outbound payloads when a session key is available
+     * - Decrypts inbound payloads when possible
+     */
+    public async sendRequest(
+        method: string,
+        endpoint: string,
+        body?: Body,
+        metaOverride?: BFMeta
+    ): Promise<{ response: Response; status: number; data: unknown }> {
+        if (!this.helloDone || !this.session.key) await this.ensureHello();
+
+        const headers: Record<string, string> = {'Content-Type': 'application/json'};
+        const token = this.token || SessionService.getToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (this.session.key) headers['BF-Session-Key'] = await this.resealSessionKeyForServer();
+
+        let outbound: string | undefined;
+        if (method !== 'GET') {
+            const meta: BFMeta = metaOverride || {type: 'TX', version: Fortress.version};
+            const envelope = await Fortress.encryptTransaction({payload: body}, this.session.key!, meta) || {
+                blindflare: meta,
+                payload: body
+            };
+            outbound = JSON.stringify(envelope);
+        }
+
+        const response = await fetch(this.domain + endpoint, {method, headers, body: outbound});
+        if (response.status === 401) {
+            this.resetAuth();
+            window.location.href = '/auth';
+        }
+
+        let data: unknown;
+        try {
+            const raw = await response.json();
+            data = await Fortress.decryptTransaction(raw, this.session.key!);
+        } catch {
+            // Fallback to raw body on parse/decrypt errors
+            try {
+                data = await response.json();
+            } catch {
+                data = null;
+            }
+        }
+
+        return {response, status: response.status, data};
+    }
+
+    /** Retrieve all aliases for the current user. */
+    async listAliases(): Promise<AliasType[]> {
+        const {data} = await this.sendRequest('GET', '/api/v1/alias');
+        return Array.isArray(data) ? (data as AliasType[]) : [];
+    }
+
+    /** Create a new alias for the current user. */
+    async createAlias(): Promise<AliasType> {
+        const {data, status} = await this.sendRequest('POST', '/api/v1/alias', {});
+        if (status >= 400) throw new Error('Alias create failed');
+        return data as AliasType;
+    }
+
+    /** Delete an alias by id or alias/address value. */
+    async deleteAlias(record: AliasType): Promise<void> {
+        if (record.id) {
+            await this.sendRequest('DELETE', `/api/v1/alias/${record.id}`);
+            return;
+        }
+        const alias = record.alias || record.address;
+        if (alias) await this.sendRequest('DELETE', '/api/v1/alias', {alias});
+    }
+
+    /** Fetch the current user's profile. */
+    async getUser(): Promise<UserProfile> {
+        const {data, status} = await this.sendRequest('GET', '/api/v1/user');
+        if (status >= 400) throw new Error('Failed to fetch user');
+        return data as UserProfile;
+    }
+
+    /** Update the current user's profile. */
+    async updateUser(update: { address?: string; pgpPublicKey?: string | null }): Promise<UserProfile> {
+        const {data, status} = await this.sendRequest('PATCH', '/api/v1/user', update);
+        if (status >= 400) throw new Error('Failed to update user');
+        return data as UserProfile;
     }
 
     /**
@@ -295,79 +382,6 @@ class BackendService {
 
         this.session.key = null;
         this.session.serverPublicKey = null;
-    }
-
-    /**
-     * Send a request to the backend.
-     * - Encrypts outbound payloads when a session key is available
-     * - Decrypts inbound payloads when possible
-     */
-    public async sendRequest(
-        method: string,
-        endpoint: string,
-        body?: Body,
-        metaOverride?: BFMeta
-    ): Promise<{ response: Response; status: number; data: unknown }> {
-        if (!this.helloDone || !this.session.key) await this.ensureHello();
-
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        const token = this.token || SessionService.getToken();
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        if (this.session.key) headers['BF-Session-Key'] = await this.resealSessionKeyForServer();
-
-        let outbound: string | undefined;
-        if (method !== 'GET') {
-            const meta: BFMeta = metaOverride || { type: 'TX', version: Fortress.version };
-            const envelope = await Fortress.encryptTransaction({ payload: body }, this.session.key!, meta) || { blindflare: meta, payload: body };
-            outbound = JSON.stringify(envelope);
-        }
-
-        const response = await fetch(this.domain + endpoint, { method, headers, body: outbound });
-        if (response.status === 401) { this.resetAuth(); window.location.href = '/auth'; }
-
-        let data: unknown;
-        try {
-            const raw = await response.json();
-            data = await Fortress.decryptTransaction(raw, this.session.key!);
-        } catch {
-            // Fallback to raw body on parse/decrypt errors
-            try { data = await response.json(); } catch { data = null; }
-        }
-
-        return { response, status: response.status, data };
-    }
-
-    /** Retrieve all aliases for the current user. */
-    async listAliases(): Promise<AliasType[]> {
-        const { data } = await this.sendRequest('GET', '/api/v1/alias');
-        return Array.isArray(data) ? (data as AliasType[]) : [];
-    }
-
-    /** Create a new alias for the current user. */
-    async createAlias(): Promise<AliasType> {
-        const { data, status } = await this.sendRequest('PUT', '/api/v1/alias', {});
-        if (status >= 400) throw new Error('Alias create failed');
-        return data as AliasType;
-    }
-
-    /** Delete an alias by id or alias/address value. */
-    async deleteAlias(record: AliasType): Promise<void> {
-        if (record.id) { await this.sendRequest('DELETE', `/api/v1/alias/${record.id}`); return; }
-        const alias = record.alias || record.address; if (alias) await this.sendRequest('DELETE', '/api/v1/alias', { alias });
-    }
-
-    /** Fetch the current user's profile. */
-    async getUser(): Promise<UserProfile> {
-        const { data, status } = await this.sendRequest('GET', '/api/v1/user');
-        if (status >= 400) throw new Error('Failed to fetch user');
-        return data as UserProfile;
-    }
-
-    /** Update the current user's profile. */
-    async updateUser(update: { address?: string; pgpPublicKey?: string | null }): Promise<UserProfile> {
-        const { data, status } = await this.sendRequest('PATCH', '/api/v1/user', update);
-        if (status >= 400) throw new Error('Failed to update user');
-        return data as UserProfile;
     }
 
     /**
