@@ -1,10 +1,10 @@
-import { Eye, EyeOff } from 'lucide-react';
-import React, { useCallback, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import {Eye, EyeOff} from 'lucide-react';
+import React, {useCallback, useRef, useState} from 'react';
+import {useForm} from 'react-hook-form';
 
-import { validateMnemonic } from '@scure/bip39';
-import { wordlist as english } from '@scure/bip39/wordlists/english';
-import { useMutation } from '@tanstack/react-query';
+import {validateMnemonic} from '@scure/bip39';
+import {wordlist} from '@scure/bip39/wordlists/english.js';
+import {useMutation} from '@tanstack/react-query';
 
 const splitWords = (v: string) => v.trim().toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter(Boolean);
 
@@ -37,7 +37,7 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
         mutationFn: async (m: string) => {
             const w = splitWords(m);
             if (w.length !== 24) throw new Error('Need exactly 24 words.');
-            if (!validateMnemonic(m, english)) throw new Error('Invalid BIP39 checksum.');
+            if (!validateMnemonic(m, wordlist)) throw new Error('Invalid BIP39 checksum.');
             return m;
         },
         onSuccess: (m) => { setError(''); onValidated?.(m); },
@@ -51,7 +51,7 @@ const MnemonicForm: React.FC<Props> = ({ onValidated }) => {
             const clone = [...prev];
             const q = sanitized;
             if (q) {
-                const matches = english.filter(w => w.startsWith(q)).slice(0, 8);
+                const matches = wordlist.filter(w => w.startsWith(q)).slice(0, 8);
                 clone[i] = (matches.length === 1 && matches[0] === q) ? [] : matches;
             } else clone[i] = [];
             return clone;

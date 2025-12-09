@@ -1,19 +1,16 @@
-import {
-    ArrowLeft, Check, Clipboard, Download, ExternalLink, Eye, EyeOff, KeyRound, Mail, Terminal
-} from 'lucide-react';
-import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router';
+import {ArrowLeft, Check, Clipboard, Download, ExternalLink, Eye, EyeOff, KeyRound, Mail, Terminal} from 'lucide-react';
+import React, {useEffect} from 'react';
+import type {SubmitHandler} from 'react-hook-form';
+import {useForm} from 'react-hook-form';
+import {Link, useNavigate} from 'react-router';
 
 import AuthNebulaScene from '@Features/auth/components/AuthNebulaScene';
 import MnemonicForm from '@Features/auth/components/MnemonicForm';
-import { generateMnemonic } from '@scure/bip39';
-import { wordlist } from '@scure/bip39/wordlists/english';
+import {generateMnemonic} from '@scure/bip39';
+import {wordlist} from '@scure/bip39/wordlists/english.js';
 import BackendService from '@Services/BackendService';
-import { decryptMnemonic, encryptMnemonic } from '@Services/CryptoService';
+import {decryptMnemonic, encryptMnemonic} from '@Services/CryptoService';
 import SessionService from '@Services/SessionService';
-
-import type { SubmitHandler } from 'react-hook-form';
 // Helper to safely extract an error message from unknown data
 const getMessage = (d: unknown, fallback: string) => {
     if (d && typeof d === 'object' && 'message' in d) {
