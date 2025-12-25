@@ -16,6 +16,7 @@ export interface AliasType {
     id?: string;
     alias?: string;
     address?: string;
+    status?: 'active' | 'disabled';
     createdAt?: string;
     [k: string]: unknown;
 }
@@ -214,6 +215,15 @@ class BackendService {
         }
         const alias = record.alias || record.address;
         if (alias) await this.sendRequest('DELETE', '/api/v1/alias', {alias});
+    }
+
+    /** Toggle alias status (active/disabled). */
+    async toggleAliasStatus(record: AliasType): Promise<AliasType> {
+        const address = record.alias || record.address;
+        if (!address) throw new Error('Alias address required');
+        const {data, status} = await this.sendRequest('PATCH', `/api/v1/alias/${encodeURIComponent(address)}`, {});
+        if (status >= 400) throw new Error('Failed to toggle alias status');
+        return data as AliasType;
     }
 
     /** Fetch the current user's profile. */
