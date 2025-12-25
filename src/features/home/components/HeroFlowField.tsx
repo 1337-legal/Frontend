@@ -1,8 +1,13 @@
 import React from 'react';
 
 export const HeroFlowField: React.FC = () => (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden [mask-image:radial-gradient(circle_at_center,white,transparent_75%)]">
-        <svg className="absolute -top-24 left-1/2 w-[1600px] -translate-x-1/2 rotate-2" viewBox="0 0 1600 800" fill="none">
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden mask-[radial-gradient(circle_at_center,white,transparent_75%)]">
+        <svg
+            className="absolute -top-24 left-1/2 w-[1600px]"
+            viewBox="0 0 1600 800"
+            fill="none"
+            style={{ transform: 'translateX(-50%) rotate(2deg) translateZ(0)' }}
+        >
             <defs>
                 <linearGradient id="hl-grad" x1="0" x2="1" y1="0" y2="1">
                     <stop offset="0%" stopColor="#fb923c" stopOpacity="0.0" />
@@ -16,58 +21,48 @@ export const HeroFlowField: React.FC = () => (
                     <stop offset="85%" stopColor="#fb923c" stopOpacity="0.8" />
                     <stop offset="100%" stopColor="#fb923c" stopOpacity="0" />
                 </radialGradient>
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="6" result="b" />
-                    <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
-                <filter id="lightBlur" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="4" result="c" />
-                    <feMerge><feMergeNode in="c" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
-                <filter id="emoji-glow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="5" result="eg" />
-                    <feMerge><feMergeNode in="eg" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
             </defs>
-            {Array.from({ length: 9 }).map((_, i) => {
-                const y = 80 + i * 70 + (i % 2 ? 25 : 0);
+            {/* 7 flow lines with optimized rendering (no blur filters) */}
+            {Array.from({ length: 7 }).map((_, i) => {
+                const y = 80 + i * 90 + (i % 2 ? 25 : 0);
                 const curvature = (i % 2 ? 180 : -180) * (1 + i * 0.05);
-                const duration = 13 + (i % 3) * 3 + i * 0.4;
+                const duration = 15 + (i % 3) * 4;
                 return (
-                    <g key={i} className="opacity-40">
+                    <g key={i} className="opacity-35">
                         <path
                             id={`flow-${i}`}
                             d={`M -100 ${y} C 400 ${y + curvature}, 1200 ${y - curvature}, 1700 ${y}`}
                             stroke="url(#hl-grad)"
-                            strokeWidth={1.1}
+                            strokeWidth={1.2}
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             className={`animate-dash-${(i % 3) + 1}`}
                             pathLength={1000}
-                            style={{ filter: 'url(#glow)' }}
                         />
-                        <circle r={4} fill="url(#light-grad)" style={{ filter: 'url(#lightBlur)' }}>
-                            <animateMotion dur={`${duration}s`} repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear" rotate="auto">
-                                <mpath href={`#flow-${i}`} />
-                            </animateMotion>
-                        </circle>
-                        <circle r={2} fill="#ffd3a1" fillOpacity={0.9} style={{ filter: 'url(#lightBlur)' }}>
-                            <animateMotion dur={`${duration * 1.15}s`} begin={`${-(i * 1.7)}s`} repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear" rotate="auto">
+                        {/* Single orb per path instead of two */}
+                        <circle r={5} fill="url(#light-grad)" opacity={0.9}>
+                            <animateMotion
+                                dur={`${duration}s`}
+                                repeatCount="indefinite"
+                                keyPoints="0;1"
+                                keyTimes="0;1"
+                                calcMode="linear"
+                            >
                                 <mpath href={`#flow-${i}`} />
                             </animateMotion>
                         </circle>
                     </g>
                 );
             })}
+            {/* 8 emojis with optimized rendering (no blur filters) */}
             {(() => {
-                const emojis = ['🛡️', '🔐', '📧', '👾', '💾', '📧', '📡', '⚙️', '🛰️', '📧', '🧬', '🗝️', '💣', '🔎'];
-                return Array.from({ length: 12 }).map((_, i) => {
-                    const y = 80 + (i * 55) % 680;
-                    const x = 180 + (i % 5) * 270 + (i % 2 ? 80 : 0);
-                    const size = 30 + (i % 4) * 8;
+                const emojis = ['🛡️', '🔐', '📧', '👾', '💾', '📡', '🗝️', '🔎'];
+                return Array.from({ length: 8 }).map((_, i) => {
+                    const y = 80 + (i * 75) % 640;
+                    const x = 150 + (i % 5) * 280 + (i % 2 ? 80 : 0);
+                    const size = 28 + (i % 3) * 6;
                     const variant = (i % 3) + 1;
-
-                    const negDelay = -((i * 947) % 3500) / 1000; // up to ~ -3.5s
+                    const negDelay = -((i * 947) % 3500) / 1000;
                     return (
                         <text
                             key={`emoji-${i}`}
@@ -75,13 +70,11 @@ export const HeroFlowField: React.FC = () => (
                             y={y}
                             fontSize={size}
                             fill="#ffdda8"
+                            opacity={0.8}
                             className={`motion-orb-${variant}`}
                             style={{
-                                filter: 'url(#emoji-glow)',
                                 fontFamily: '"Segoe UI Emoji", "Apple Color Emoji", sans-serif',
-                                textShadow: '0 0 10px rgba(251,146,60,0.95),0 0 22px rgba(251,146,60,0.55)',
                                 animationDelay: `${negDelay}s`,
-                                willChange: 'transform'
                             }}
                         >{emojis[i % emojis.length]}</text>
                     );

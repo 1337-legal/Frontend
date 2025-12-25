@@ -201,7 +201,7 @@ class BackendService {
 
     /** Create a new alias for the current user. */
     async createAlias(): Promise<AliasType> {
-        const {data, status} = await this.sendRequest('POST', '/api/v1/alias', {});
+        const {data, status} = await this.sendRequest('PUT', '/api/v1/alias', {});
         if (status >= 400) throw new Error('Alias create failed');
         return data as AliasType;
     }
