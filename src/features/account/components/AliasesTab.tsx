@@ -1,8 +1,9 @@
-import { Plus, RefreshCw, Trash2 } from 'lucide-react';
-import React from 'react';
+import {Bomb, Plus, RefreshCw, Trash2, X} from 'lucide-react';
+import React, {useState} from 'react';
+import {createPortal} from 'react-dom';
 
 import BackendService from '@Services/BackendService';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 /**
  * Alias management tab.
@@ -10,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
  */
 const AliasesTab: React.FC = () => {
     const queryClient = useQueryClient();
+    const [aliasToDelete, setAliasToDelete] = useState<AliasRecord | null>(null);
 
     const { data: aliases = [], isLoading, isFetching, error: queryError, refetch } = useQuery<AliasRecord[]>({
         queryKey: ['aliases'],
@@ -25,7 +27,10 @@ const AliasesTab: React.FC = () => {
     /** Deletes the provided alias and invalidates the alias list cache. */
     const deleteMutation = useMutation({
         mutationFn: (r: AliasRecord) => BackendService.deleteAlias(r),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aliases'] }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['aliases'] });
+            setAliasToDelete(null);
+        },
     });
 
     /** Refetches the aliases table. */
@@ -35,12 +40,23 @@ const AliasesTab: React.FC = () => {
     const handleCreate = () => createMutation.mutate();
 
     /**
-     * Confirms and removes an alias.
+     * Opens the burn confirmation modal.
      * @param r Alias record to delete.
      */
     const handleRemove = (r: AliasRecord) => {
-        if (!confirm('Delete alias?')) return;
-        deleteMutation.mutate(r);
+        setAliasToDelete(r);
+    };
+
+    /** Confirms alias deletion from the modal. */
+    const confirmDelete = () => {
+        if (aliasToDelete) {
+            deleteMutation.mutate(aliasToDelete);
+        }
+    };
+
+    /** Closes the burn confirmation modal. */
+    const cancelDelete = () => {
+        setAliasToDelete(null);
     };
 
     const err = (createMutation.error || deleteMutation.error || queryError) as unknown;
@@ -95,6 +111,61 @@ const AliasesTab: React.FC = () => {
                     <p className="mt-3 text-[10px] text-neutral-500">Aliases are generated server-side & returned; deletion revokes routing.</p>
                 </div >
             </section >
+
+            {/* Burn Confirmation Modal */}
+            {aliasToDelete && createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <div className="relative w-full max-w-md mx-4 rounded-xl border border-red-900/50 bg-neutral-950 p-6 shadow-2xl shadow-red-900/20">
+                        {/* Close button */}
+                        <button
+                            onClick={cancelDelete}
+                            className="absolute right-3 top-3 rounded-md p-1 text-neutral-500 transition hover:bg-neutral-800 hover:text-neutral-300"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+
+                        {/* Icon & Header */}
+                        <div className="mb-4 flex flex-col items-center text-center">
+                            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600/20 to-orange-600/20 ring-1 ring-red-500/30">
+                                <Bomb className="h-7 w-7 text-red-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-neutral-100">Burn Alias?</h3>
+                            <p className="mt-1 text-xs text-neutral-500">This action is permanent and cannot be undone.</p>
+                        </div>
+
+                        {/* Alias being deleted */}
+                        <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-center">
+                            <span className="font-mono text-sm text-orange-300">{aliasToDelete.alias || aliasToDelete.address}</span>
+                        </div>
+
+                        {/* Warning */}
+                        <div className="mb-5 rounded-lg border border-amber-800/40 bg-amber-900/10 px-4 py-3">
+                            <p className="text-xs leading-relaxed text-amber-200/90">
+                                <strong className="font-semibold text-amber-300">Warning:</strong> Once burned, this alias will be released and may be allocated to another user in the future. All mail routing to this alias will stop immediately.
+                            </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={cancelDelete}
+                                className="flex-1 rounded-lg border border-neutral-700 bg-neutral-800/60 px-4 py-2.5 text-sm font-medium text-neutral-300 transition hover:bg-neutral-800 hover:text-neutral-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                disabled={deleteMutation.isPending}
+                                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-red-600 to-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-900/30 transition hover:from-red-500 hover:to-red-600 disabled:opacity-50"
+                            >
+                                <Bomb className="h-4 w-4" />
+                                {deleteMutation.isPending ? 'Burning…' : 'Burn Alias'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div >
     )
 };
