@@ -1,4 +1,4 @@
-import {Bomb, Plus, RefreshCw, Trash2, X} from 'lucide-react';
+import {Bomb, Plus, Power, RefreshCw, Trash2, X} from 'lucide-react';
 import React, {useState} from 'react';
 import {createPortal} from 'react-dom';
 
@@ -33,6 +33,12 @@ const AliasesTab: React.FC = () => {
         },
     });
 
+    /** Toggles alias status (active/disabled). */
+    const toggleMutation = useMutation({
+        mutationFn: (r: AliasRecord) => BackendService.toggleAliasStatus(r),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aliases'] }),
+    });
+
     /** Refetches the aliases table. */
     const handleReload = () => { void refetch(); };
 
@@ -47,6 +53,9 @@ const AliasesTab: React.FC = () => {
         setAliasToDelete(r);
     };
 
+    /** Toggles alias status between active and disabled. */
+    const handleToggle = (r: AliasRecord) => toggleMutation.mutate(r);
+
     /** Confirms alias deletion from the modal. */
     const confirmDelete = () => {
         if (aliasToDelete) {
@@ -59,9 +68,8 @@ const AliasesTab: React.FC = () => {
         setAliasToDelete(null);
     };
 
-    const err = (createMutation.error || deleteMutation.error || queryError) as unknown;
+    const err = (createMutation.error || deleteMutation.error || toggleMutation.error || queryError) as unknown;
     const errorMsg = err ? (err instanceof Error ? err.message : 'Request failed') : '';
-
 
     return (
         <div className="space-y-6">
@@ -85,26 +93,48 @@ const AliasesTab: React.FC = () => {
                             <thead className="bg-neutral-900/70 text-neutral-500 uppercase tracking-wider">
                                 <tr>
                                     <th className="px-3 py-2 font-medium">Alias</th>
+                                    <th className="px-3 py-2 font-medium">Status</th>
                                     <th className="px-3 py-2 font-medium">Created</th>
                                     <th className="px-3 py-2" />
                                 </tr>
                             </thead>
                             <tbody>
                                 {aliases.length === 0 && !isLoading && (
-                                    <tr><td colSpan={3} className="px-3 py-4 text-neutral-600">No aliases.</td></tr>
+                                    <tr><td colSpan={4} className="px-3 py-4 text-neutral-600">No aliases.</td></tr>
                                 )}
-                                {aliases.map(a => (
+                                {aliases.reverse().map(a => (
                                     <tr key={a.id || a.alias} className="border-t border-neutral-800/60 hover:bg-neutral-900/50">
                                         <td className="px-3 py-2 font-mono text-[10px] text-orange-200">{a.alias || a.address}</td>
+                                        <td className="px-3 py-2">
+                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-medium ${
+                                                a.status === 'active' 
+                                                    ? 'bg-green-900/30 text-green-400 ring-1 ring-green-500/30' 
+                                                    : 'bg-neutral-800/50 text-neutral-500 ring-1 ring-neutral-700/50'
+                                            }`}>
+                                                {a.status === 'active' ? 'Active' : 'Disabled'}
+                                            </span>
+                                        </td>
                                         <td className="px-3 py-2 text-neutral-500">{a.createdAt ? new Date(a.createdAt).toLocaleString() : '—'}</td>
-                                        <td className="px-2 py-2 text-right">
+                                        <td className="px-2 py-2 text-right flex gap-1 justify-end">
+                                            <button
+                                                onClick={() => handleToggle(a)}
+                                                disabled={toggleMutation.isPending}
+                                                className={`inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-medium transition ${
+                                                    a.status === 'active'
+                                                        ? 'border-amber-800/40 bg-amber-900/10 text-amber-300 hover:bg-amber-900/20'
+                                                        : 'border-green-800/40 bg-green-900/10 text-green-300 hover:bg-green-900/20'
+                                                }`}
+                                                title={a.status === 'active' ? 'Disable alias' : 'Enable alias'}
+                                            >
+                                                <Power className="h-3.5 w-3.5" />
+                                            </button>
                                             <button onClick={() => handleRemove(a)} className="inline-flex items-center rounded-md border border-red-800/40 bg-red-900/10 px-2 py-1 text-[10px] font-medium text-red-300 hover:bg-red-900/20">
                                                 <Trash2 className="h-3.5 w-3.5" />
                                             </button>
                                         </td>
                                     </tr>
                                 ))}
-                                {isLoading && <tr><td colSpan={3} className="px-3 py-4 text-neutral-600">Loading…</td></tr>}
+                                {isLoading && <tr><td colSpan={4} className="px-3 py-4 text-neutral-600">Loading…</td></tr>}
                             </tbody>
                         </table>
                     </div>
@@ -112,11 +142,9 @@ const AliasesTab: React.FC = () => {
                 </div >
             </section >
 
-            {/* Burn Confirmation Modal */}
             {aliasToDelete && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                     <div className="relative w-full max-w-md mx-4 rounded-xl border border-red-900/50 bg-neutral-950 p-6 shadow-2xl shadow-red-900/20">
-                        {/* Close button */}
                         <button
                             onClick={cancelDelete}
                             className="absolute right-3 top-3 rounded-md p-1 text-neutral-500 transition hover:bg-neutral-800 hover:text-neutral-300"
@@ -124,7 +152,6 @@ const AliasesTab: React.FC = () => {
                             <X className="h-4 w-4" />
                         </button>
 
-                        {/* Icon & Header */}
                         <div className="mb-4 flex flex-col items-center text-center">
                             <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600/20 to-orange-600/20 ring-1 ring-red-500/30">
                                 <Bomb className="h-7 w-7 text-red-400" />
@@ -133,19 +160,29 @@ const AliasesTab: React.FC = () => {
                             <p className="mt-1 text-xs text-neutral-500">This action is permanent and cannot be undone.</p>
                         </div>
 
-                        {/* Alias being deleted */}
                         <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-center">
                             <span className="font-mono text-sm text-orange-300">{aliasToDelete.alias || aliasToDelete.address}</span>
                         </div>
 
-                        {/* Warning */}
-                        <div className="mb-5 rounded-lg border border-amber-800/40 bg-amber-900/10 px-4 py-3">
-                            <p className="text-xs leading-relaxed text-amber-200/90">
-                                <strong className="font-semibold text-amber-300">Warning:</strong> Once burned, this alias will be released and may be allocated to another user in the future. All mail routing to this alias will stop immediately.
-                            </p>
+                        <div className="mb-5 space-y-2">
+                            <div className="flex items-start gap-3 rounded-lg border border-amber-800/40 bg-amber-900/10 px-4 py-3">
+                                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20">
+                                    <span className="text-[10px] font-bold text-amber-400">!</span>
+                                </div>
+                                <p className="text-xs leading-relaxed text-amber-200/90">
+                                    Once burned, this alias will be released and may be allocated to another user in the future. All mail routing to this alias will stop immediately.
+                                </p>
+                            </div>
+                            <div className="flex items-start gap-3 rounded-lg border border-green-800/40 bg-green-900/10 px-4 py-3">
+                                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-500/20">
+                                    <span className="text-[10px] font-bold text-green-400">✓</span>
+                                </div>
+                                <p className="text-xs leading-relaxed text-green-300/90">
+                                    No link between your account and this email address will remain after deletion.
+                                </p>
+                            </div>
                         </div>
 
-                        {/* Actions */}
                         <div className="flex gap-3">
                             <button
                                 onClick={cancelDelete}
