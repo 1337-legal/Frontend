@@ -26,6 +26,50 @@ const getMessage = (d: unknown, fallback: string) => {
     return fallback;
 };
 
+// Input component matching Home page style
+const Input: React.FC<{
+    icon?: React.ReactNode;
+    type?: string;
+    placeholder?: string;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    showToggle?: boolean;
+    isPassword?: boolean;
+    onToggle?: () => void;
+    className?: string;
+    id?: string;
+    autoComplete?: string;
+    register?: any;
+}> = ({ icon, type = 'text', placeholder, value, onChange, showToggle, isPassword, onToggle, className = '', id, autoComplete, register: registerProps }) => (
+    <div className="relative flex items-center">
+        {icon && (
+            <span className="absolute left-3 text-neutral-500">
+                {icon}
+            </span>
+        )}
+        <input
+            id={id}
+            type={isPassword ? (showToggle ? 'text' : 'password') : type}
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            autoComplete={autoComplete}
+            className={`w-full rounded-md border border-neutral-700 bg-neutral-900/60 ${icon ? 'pl-10' : 'pl-4'} pr-${onToggle ? '10' : '4'} py-2.5 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none transition-colors focus:border-orange-500/60 focus:bg-neutral-900 ${className}`}
+            {...registerProps}
+        />
+        {onToggle && (
+            <button
+                type="button"
+                onClick={onToggle}
+                className="absolute right-3 p-1 text-neutral-500 transition-colors hover:text-orange-400"
+                aria-label={showToggle ? 'Hide' : 'Show'}
+            >
+                {showToggle ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+        )}
+    </div>
+);
+
 const Auth: React.FC = () => {
     const navigate = useNavigate();
     const [mode, setMode] = React.useState<'choose' | 'have' | 'new' | 'verify' | 'show' | 'unlock'>(
@@ -174,49 +218,6 @@ const Auth: React.FC = () => {
         return () => window.removeEventListener('keydown', onKey);
     }, [mode]);
 
-    // Input component matching Home page style
-    const Input: React.FC<{
-        icon?: React.ReactNode;
-        type?: string;
-        placeholder?: string;
-        value?: string;
-        onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-        showToggle?: boolean;
-        isPassword?: boolean;
-        onToggle?: () => void;
-        className?: string;
-        id?: string;
-        autoComplete?: string;
-        register?: ReturnType<typeof register>;
-    }> = ({ icon, type = 'text', placeholder, value, onChange, showToggle, isPassword, onToggle, className = '', id, autoComplete, register: registerProps }) => (
-        <div className="relative flex items-center">
-            {icon && (
-                <span className="absolute left-3 text-neutral-500">
-                    {icon}
-                </span>
-            )}
-            <input
-                id={id}
-                type={isPassword ? (showToggle ? 'text' : 'password') : type}
-                placeholder={placeholder}
-                value={value}
-                onChange={onChange}
-                autoComplete={autoComplete}
-                className={`w-full rounded-md border border-neutral-700 bg-neutral-900/60 ${icon ? 'pl-10' : 'pl-4'} pr-${onToggle ? '10' : '4'} py-2.5 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none transition-colors focus:border-orange-500/60 focus:bg-neutral-900 ${className}`}
-                {...registerProps}
-            />
-            {onToggle && (
-                <button
-                    type="button"
-                    onClick={onToggle}
-                    className="absolute right-3 p-1 text-neutral-500 transition-colors hover:text-orange-400"
-                    aria-label={showToggle ? 'Hide' : 'Show'}
-                >
-                    {showToggle ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-            )}
-        </div>
-    );
 
     return (
         <div className="relative min-h-screen w-full overflow-hidden bg-neutral-950 text-neutral-100">
