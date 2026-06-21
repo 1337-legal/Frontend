@@ -12,6 +12,8 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 const AliasesTab: React.FC = () => {
     const queryClient = useQueryClient();
     const [aliasToDelete, setAliasToDelete] = useState<AliasRecord | null>(null);
+    const [editingNicknameId, setEditingNicknameId] = useState<string | null>(null);
+    const [editingNicknameValue, setEditingNicknameValue] = useState('');
 
     const { data: aliases = [], isLoading, isFetching, error: queryError, refetch } = useQuery<AliasRecord[]>({
         queryKey: ['aliases'],
@@ -36,6 +38,13 @@ const AliasesTab: React.FC = () => {
     /** Toggles alias status (active/disabled). */
     const toggleMutation = useMutation({
         mutationFn: (r: AliasRecord) => BackendService.toggleAliasStatus(r),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aliases'] }),
+    });
+
+    /** Updates the nickname for an alias. */
+    const nicknameMutation = useMutation({
+        mutationFn: ({record, nickname}: {record: AliasRecord; nickname: string | null}) =>
+            BackendService.updateAliasNickname(record, nickname),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aliases'] }),
     });
 
@@ -68,7 +77,20 @@ const AliasesTab: React.FC = () => {
         setAliasToDelete(null);
     };
 
-    const err = (createMutation.error || deleteMutation.error || toggleMutation.error || queryError) as unknown;
+    /** Enters inline edit mode for the nickname of the given alias. */
+    const startEditNickname = (a: AliasRecord) => {
+        setEditingNicknameId(String(a.id ?? a.address ?? ''));
+        setEditingNicknameValue(a.nickname ?? '');
+    };
+
+    /** Saves the edited nickname and exits inline edit mode. */
+    const saveNickname = (a: AliasRecord) => {
+        const trimmed = editingNicknameValue.trim() || null;
+        nicknameMutation.mutate({record: a, nickname: trimmed});
+        setEditingNicknameId(null);
+    };
+
+    const err = (createMutation.error || deleteMutation.error || toggleMutation.error || nicknameMutation.error || queryError) as unknown;
     const errorMsg = err ? (err instanceof Error ? err.message : 'Request failed') : '';
 
     return (
@@ -93,6 +115,7 @@ const AliasesTab: React.FC = () => {
                             <thead className="bg-neutral-900/70 text-neutral-500 uppercase tracking-wider">
                                 <tr>
                                     <th className="px-3 py-2 font-medium">Alias</th>
+                                    <th className="px-3 py-2 font-medium">Nickname</th>
                                     <th className="px-3 py-2 font-medium">Status</th>
                                     <th className="px-3 py-2 font-medium">Created</th>
                                     <th className="px-3 py-2" />
@@ -100,15 +123,39 @@ const AliasesTab: React.FC = () => {
                             </thead>
                             <tbody>
                                 {aliases.length === 0 && !isLoading && (
-                                    <tr><td colSpan={4} className="px-3 py-4 text-neutral-600">No aliases.</td></tr>
+                                    <tr><td colSpan={5} className="px-3 py-4 text-neutral-600">No aliases.</td></tr>
                                 )}
                                 {aliases.reverse().map(a => (
                                     <tr key={a.id || a.alias} className="border-t border-neutral-800/60 hover:bg-neutral-900/50">
                                         <td className="px-3 py-2 font-mono text-[10px] text-orange-200">{a.alias || a.address}</td>
+                                        <td className="px-3 py-2 text-[10px]">
+                                            {editingNicknameId === String(a.id ?? a.address ?? '') ? (
+                                                <input
+                                                    autoFocus
+                                                    value={editingNicknameValue}
+                                                    onChange={e => setEditingNicknameValue(e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter') saveNickname(a);
+                                                        if (e.key === 'Escape') setEditingNicknameId(null);
+                                                    }}
+                                                    onBlur={() => saveNickname(a)}
+                                                    className="w-full bg-neutral-800 border border-orange-500/50 rounded px-1.5 py-0.5 text-[10px] text-neutral-200 outline-none"
+                                                    placeholder="e.g. Newsletter signups"
+                                                />
+                                            ) : (
+                                                <span
+                                                    onClick={() => startEditNickname(a)}
+                                                    className="cursor-pointer text-neutral-400 hover:text-neutral-200 transition"
+                                                    title="Click to set nickname"
+                                                >
+                                                    {a.nickname || <span className="text-neutral-600">—</span>}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-3 py-2">
                                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-medium ${
-                                                a.status === 'active' 
-                                                    ? 'bg-green-900/30 text-green-400 ring-1 ring-green-500/30' 
+                                                a.status === 'active'
+                                                    ? 'bg-green-900/30 text-green-400 ring-1 ring-green-500/30'
                                                     : 'bg-neutral-800/50 text-neutral-500 ring-1 ring-neutral-700/50'
                                             }`}>
                                                 {a.status === 'active' ? 'Active' : 'Disabled'}
@@ -134,7 +181,7 @@ const AliasesTab: React.FC = () => {
                                         </td>
                                     </tr>
                                 ))}
-                                {isLoading && <tr><td colSpan={4} className="px-3 py-4 text-neutral-600">Loading…</td></tr>}
+                                {isLoading && <tr><td colSpan={5} className="px-3 py-4 text-neutral-600">Loading…</td></tr>}
                             </tbody>
                         </table>
                     </div>

@@ -17,6 +17,7 @@ export interface AliasType {
     alias?: string;
     address?: string;
     status?: 'active' | 'disabled';
+    nickname?: string | null;
     createdAt?: string;
     [k: string]: unknown;
 }
@@ -215,6 +216,15 @@ class BackendService {
         }
         const alias = record.alias || record.address;
         if (alias) await this.sendRequest('DELETE', '/api/v1/alias', {alias});
+    }
+
+    /** Set or clear the nickname for an alias. */
+    async updateAliasNickname(record: AliasType, nickname: string | null): Promise<AliasType> {
+        const address = record.alias || record.address;
+        if (!address) throw new Error('Alias address required');
+        const {data, status} = await this.sendRequest('PATCH', `/api/v1/alias/${encodeURIComponent(address)}/nickname`, {nickname});
+        if (status >= 400) throw new Error('Failed to update alias nickname');
+        return data as AliasType;
     }
 
     /** Toggle alias status (active/disabled). */
