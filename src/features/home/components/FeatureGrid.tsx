@@ -5,7 +5,7 @@ import { features } from '../constants/constants';
 import FeatureIcon from './FeatureIcon';
 
 export const FeatureGrid: React.FC = () => (
-    <section className="mx-auto max-w-7xl px-6 pt-24 lg:px-12">
+    <section id="core-surface" className="mx-auto max-w-7xl px-6 pt-24 lg:px-12">
         <div className="mb-10 flex items-center gap-4">
             <Marker size={10} />
             <h2 className="font-display text-xl font-semibold uppercase tracking-[0.06em] text-neutral-100 md:text-2xl">

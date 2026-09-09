@@ -127,6 +127,14 @@
     * {
         @apply border-border outline-ring/50;
     }
+    html {
+        scroll-behavior: smooth;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+    }
     body {
         @apply bg-background text-foreground;
         font-family: var(--font-sans);
@@ -200,6 +208,34 @@
         }
         .lattice-float {
             animation: none;
+        }
+    }
+
+    .scroll-cue {
+        animation: scroll-cue 2.4s ease-in-out infinite;
+    }
+
+    @keyframes scroll-cue {
+        0% {
+            transform: translateY(0);
+            opacity: 0;
+        }
+        18% {
+            opacity: 1;
+        }
+        72% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(34px);
+            opacity: 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .scroll-cue {
+            animation: none;
+            transform: translateY(16px);
         }
     }
 
