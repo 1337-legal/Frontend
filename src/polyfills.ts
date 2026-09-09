@@ -5,5 +5,11 @@ declare global {
 }
 
 if (typeof globalThis.Buffer === 'undefined') {
-    globalThis.Buffer = BufferPolyfill;
+    if (typeof BufferPolyfill?.from === 'function') {
+        globalThis.Buffer = BufferPolyfill;
+    } else {
+        console.error(
+            "Buffer polyfill unavailable: 'buffer' resolved to an empty module, so Blindflare session negotiation will fail.",
+        );
+    }
 }

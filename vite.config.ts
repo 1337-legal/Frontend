@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import path from 'path';
 
 import tailwindcss from '@tailwindcss/vite';
@@ -6,6 +7,18 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
+const require = createRequire(import.meta.url);
+
+const bufferPolyfill = (() => {
+    try {
+        return require.resolve('buffer/index.js');
+    } catch {
+        throw new Error(
+            "The 'buffer' package is not installed. @blindflare/fortress needs it in the browser and does not declare it; without it Vite silently stubs the module and session key negotiation fails at runtime. Re-run the install step.",
+        );
+    }
+})();
+
 export default defineConfig({
     plugins: [
         react(),
@@ -42,6 +55,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
+            buffer: bufferPolyfill,
             '@Features': path.resolve(__dirname, './src/features'),
             '@Components': path.resolve(__dirname, './src/components'),
             '@Assets': path.resolve(__dirname, './src/assets'),
