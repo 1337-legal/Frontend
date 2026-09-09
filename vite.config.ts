@@ -12,7 +12,7 @@ export default defineConfig({
         tailwindcss(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.png', 'robots.txt'],
+            includeAssets: ['favicon.svg', 'favicon.png', 'apple-touch-icon.png', 'robots.txt'],
             manifest: {
                 name: '1337',
                 short_name: '1337',
@@ -21,7 +21,7 @@ export default defineConfig({
                 theme_color: '#0a0a0a',
                 icons: [
                     {
-                        src: 'favicon.png',
+                        src: 'favicon-192.png',
                         sizes: '192x192',
                         type: 'image/png',
                     },
@@ -31,10 +31,10 @@ export default defineConfig({
                         type: 'image/png',
                     },
                     {
-                        src: 'favicon.png',
+                        src: 'maskable-icon-512.png',
                         sizes: '512x512',
                         type: 'image/png',
-                        purpose: 'any maskable',
+                        purpose: 'maskable',
                     },
                 ],
             },
