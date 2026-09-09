@@ -32,6 +32,10 @@ export default defineConfig({
                 description:
                     'Create and use clean, disposable email aliases that keep your real address hidden — with no content logs, no IP logs, and nothing to correlate you.',
                 theme_color: '#0a0a0a',
+                background_color: '#0a0a0a',
+                display: 'standalone',
+                start_url: '/',
+                scope: '/',
                 icons: [
                     {
                         src: 'favicon-192.png',

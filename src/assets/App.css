@@ -128,7 +128,10 @@
         @apply border-border outline-ring/50;
     }
     html {
+        background-color: #0a0a0a;
+        color-scheme: dark;
         scroll-behavior: smooth;
+        -webkit-tap-highlight-color: transparent;
     }
     @media (prefers-reduced-motion: reduce) {
         html {
@@ -236,6 +239,27 @@
         .scroll-cue {
             animation: none;
             transform: translateY(16px);
+        }
+    }
+
+    .tab-enter {
+        animation: tab-enter 0.18s ease-out;
+    }
+
+    @keyframes tab-enter {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .tab-enter {
+            animation: none;
         }
     }
 
