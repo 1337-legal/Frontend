@@ -53,6 +53,9 @@ export default defineConfig({
             },
         }),
     ],
+    optimizeDeps: {
+        include: ['buffer'],
+    },
     resolve: {
         alias: {
             buffer: bufferPolyfill,
