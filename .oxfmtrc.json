@@ -9,6 +9,6 @@
     "arrowParens": "always",
     "bracketSpacing": true,
     "insertFinalNewline": true,
-    "sortImports": true,
+    "sortImports": false,
     "ignorePatterns": ["dist", "dev-dist"]
 }
