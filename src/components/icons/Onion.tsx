@@ -1,11 +1,7 @@
-import { Icon } from 'lucide-react';
-
-import { onion } from '@lucide/lab';
+import { OnionSquare } from './Lattice';
 
 type Props = {
     className?: string;
 };
 
-export const OnionIcon = ({ className }: Props) => (
-    <Icon iconNode={onion} className={className} />
-);
+export const OnionIcon = ({ className }: Props) => <OnionSquare className={className} />;

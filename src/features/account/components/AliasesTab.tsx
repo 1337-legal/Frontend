@@ -1,30 +1,53 @@
-import {Bomb, Plus, Power, RefreshCw, Trash2, X} from 'lucide-react';
-import React, {useState} from 'react';
-import {createPortal} from 'react-dom';
-
+import { Marker, PowerSquare, ReloadSquare, TrashSquare } from '@Components/icons/Lattice';
+import { Button } from '@Components/ui/button';
+import { Panel } from '@Components/ui/panel';
 import BackendService from '@Services/BackendService';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 
-/**
- * Alias management tab.
- * Lists existing aliases and provides create/delete actions with optimistic refresh.
- */
+import { cn } from '@/lib/utils';
+
+const StatusChip: React.FC<{ active: boolean }> = ({ active }) => (
+    <span
+        className={cn(
+            'inline-flex w-fit items-center gap-2 border px-2.5 py-1',
+            active ? 'border-emerald-400' : 'border-neutral-700',
+        )}
+    >
+        <Marker size={5} className={active ? 'bg-emerald-400' : 'bg-neutral-500'} />
+        <span
+            className={cn(
+                'font-mono text-[9px] font-semibold uppercase tracking-[0.14em]',
+                active ? 'text-emerald-400' : 'text-neutral-400',
+            )}
+        >
+            {active ? 'Active' : 'Disabled'}
+        </span>
+    </span>
+);
+
 const AliasesTab: React.FC = () => {
     const queryClient = useQueryClient();
     const [aliasToDelete, setAliasToDelete] = useState<AliasRecord | null>(null);
 
-    const { data: aliases = [], isLoading, isFetching, error: queryError, refetch } = useQuery<AliasRecord[]>({
+    const {
+        data: aliases = [],
+        isLoading,
+        isFetching,
+        error: queryError,
+        refetch,
+    } = useQuery<AliasRecord[]>({
         queryKey: ['aliases'],
-        queryFn: () => BackendService.listAliases()
+        queryFn: () => BackendService.listAliases(),
     });
 
-    /** Creates a new alias and invalidates the alias list cache. */
     const createMutation = useMutation({
         mutationFn: () => BackendService.createAlias(),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aliases'] }),
     });
 
-    /** Deletes the provided alias and invalidates the alias list cache. */
     const deleteMutation = useMutation({
         mutationFn: (r: AliasRecord) => BackendService.deleteAlias(r),
         onSuccess: () => {
@@ -33,37 +56,29 @@ const AliasesTab: React.FC = () => {
         },
     });
 
-    /** Toggles alias status (active/disabled). */
     const toggleMutation = useMutation({
         mutationFn: (r: AliasRecord) => BackendService.toggleAliasStatus(r),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['aliases'] }),
     });
 
-    /** Refetches the aliases table. */
-    const handleReload = () => { void refetch(); };
+    const handleReload = () => {
+        void refetch();
+    };
 
-    /** Triggers alias creation. */
     const handleCreate = () => createMutation.mutate();
 
-    /**
-     * Opens the burn confirmation modal.
-     * @param r Alias record to delete.
-     */
     const handleRemove = (r: AliasRecord) => {
         setAliasToDelete(r);
     };
 
-    /** Toggles alias status between active and disabled. */
     const handleToggle = (r: AliasRecord) => toggleMutation.mutate(r);
 
-    /** Confirms alias deletion from the modal. */
     const confirmDelete = () => {
         if (aliasToDelete) {
             deleteMutation.mutate(aliasToDelete);
         }
     };
 
-    /** Closes the burn confirmation modal. */
     const cancelDelete = () => {
         setAliasToDelete(null);
     };
@@ -71,140 +86,227 @@ const AliasesTab: React.FC = () => {
     const err = (createMutation.error || deleteMutation.error || toggleMutation.error || queryError) as unknown;
     const errorMsg = err ? (err instanceof Error ? err.message : 'Request failed') : '';
 
+    const ordered = aliases.toReversed();
+
     return (
-        <div className="space-y-6">
-            <section>
-                <h2 className="mb-3 text-sm font-semibold tracking-wide text-neutral-200">Alias Management</h2>
-                <div className="rounded-lg border border-neutral-800/70 bg-neutral-900/40 p-5">
-                    <div className="mb-4 flex items-center justify-between gap-4">
-                        <h3 className="text-sm font-semibold tracking-wide text-neutral-200">Aliases</h3>
-                        <div className="flex gap-2">
-                            <button onClick={handleReload} disabled={isFetching || isLoading} className="inline-flex items-center rounded-md border border-neutral-700 bg-neutral-800/60 px-2 py-1.5 text-[11px] font-medium text-neutral-300 transition hover:border-orange-500/50 hover:text-orange-200 disabled:opacity-40">
-                                <RefreshCw className={`mr-1 h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} /> Reload
-                            </button>
-                            <button onClick={handleCreate} disabled={createMutation.isPending} className="inline-flex items-center rounded-md bg-orange-500 px-2.5 py-1.5 text-[11px] font-semibold text-neutral-900 shadow hover:bg-orange-400 disabled:opacity-50">
-                                <Plus className="mr-1 h-3.5 w-3.5" /> New
-                            </button>
-                        </div>
+        <div className="flex flex-col gap-8">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+                <div className="flex flex-col gap-2.5">
+                    <div className="flex items-center gap-3.5">
+                        <Marker size={10} />
+                        <h1 className="font-display text-3xl font-bold uppercase leading-none tracking-[0.03em] text-neutral-100">
+                            Alias management
+                        </h1>
                     </div>
-                    {errorMsg && <p className="mb-3 text-xs text-red-400">{errorMsg}</p>}
-                    <div className="max-h-64 overflow-auto rounded-md border border-neutral-800/60 bg-neutral-950/40">
-                        <table className="w-full text-left text-[11px]">
-                            <thead className="bg-neutral-900/70 text-neutral-500 uppercase tracking-wider">
-                                <tr>
-                                    <th className="px-3 py-2 font-medium">Alias</th>
-                                    <th className="px-3 py-2 font-medium">Status</th>
-                                    <th className="px-3 py-2 font-medium">Created</th>
-                                    <th className="px-3 py-2" />
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {aliases.length === 0 && !isLoading && (
-                                    <tr><td colSpan={4} className="px-3 py-4 text-neutral-600">No aliases.</td></tr>
-                                )}
-                                {aliases.reverse().map(a => (
-                                    <tr key={a.id || a.alias} className="border-t border-neutral-800/60 hover:bg-neutral-900/50">
-                                        <td className="px-3 py-2 font-mono text-[10px] text-orange-200">{a.alias || a.address}</td>
-                                        <td className="px-3 py-2">
-                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-medium ${
-                                                a.status === 'active' 
-                                                    ? 'bg-green-900/30 text-green-400 ring-1 ring-green-500/30' 
-                                                    : 'bg-neutral-800/50 text-neutral-500 ring-1 ring-neutral-700/50'
-                                            }`}>
-                                                {a.status === 'active' ? 'Active' : 'Disabled'}
-                                            </span>
-                                        </td>
-                                        <td className="px-3 py-2 text-neutral-500">{a.createdAt ? new Date(a.createdAt).toLocaleString() : '—'}</td>
-                                        <td className="px-2 py-2 text-right flex gap-1 justify-end">
-                                            <button
-                                                onClick={() => handleToggle(a)}
-                                                disabled={toggleMutation.isPending}
-                                                className={`inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-medium transition ${
-                                                    a.status === 'active'
-                                                        ? 'border-amber-800/40 bg-amber-900/10 text-amber-300 hover:bg-amber-900/20'
-                                                        : 'border-green-800/40 bg-green-900/10 text-green-300 hover:bg-green-900/20'
-                                                }`}
-                                                title={a.status === 'active' ? 'Disable alias' : 'Enable alias'}
-                                            >
-                                                <Power className="h-3.5 w-3.5" />
-                                            </button>
-                                            <button onClick={() => handleRemove(a)} className="inline-flex items-center rounded-md border border-red-800/40 bg-red-900/10 px-2 py-1 text-[10px] font-medium text-red-300 hover:bg-red-900/20">
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {isLoading && <tr><td colSpan={4} className="px-3 py-4 text-neutral-600">Loading…</td></tr>}
-                            </tbody>
-                        </table>
-                    </div>
-                    <p className="mt-3 text-[10px] text-neutral-500">Aliases are generated server-side & returned; deletion revokes routing.</p>
-                </div >
-            </section >
+                    <p className="pl-6 font-mono text-[11px] leading-relaxed text-neutral-500">
+                        Aliases are generated server-side. Deletion revokes routing immediately.
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Button variant="outline" onClick={handleReload} disabled={isFetching || isLoading}>
+                        <ReloadSquare className={cn('mr-1 h-3.5 w-3.5', isFetching && 'animate-spin')} /> Reload
+                    </Button>
+                    <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                        <Plus className="mr-1 h-3.5 w-3.5" /> {createMutation.isPending ? 'Creating…' : 'New alias'}
+                    </Button>
+                </div>
+            </div>
 
-            {aliasToDelete && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                    <div className="relative w-full max-w-md mx-4 rounded-xl border border-red-900/50 bg-neutral-950 p-6 shadow-2xl shadow-red-900/20">
-                        <button
-                            onClick={cancelDelete}
-                            className="absolute right-3 top-3 rounded-md p-1 text-neutral-500 transition hover:bg-neutral-800 hover:text-neutral-300"
-                        >
-                            <X className="h-4 w-4" />
-                        </button>
-
-                        <div className="mb-4 flex flex-col items-center text-center">
-                            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-red-600/20 to-orange-600/20 ring-1 ring-red-500/30">
-                                <Bomb className="h-7 w-7 text-red-400" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-neutral-100">Burn Alias?</h3>
-                            <p className="mt-1 text-xs text-neutral-500">This action is permanent and cannot be undone.</p>
-                        </div>
-
-                        <div className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-center">
-                            <span className="font-mono text-sm text-orange-300">{aliasToDelete.alias || aliasToDelete.address}</span>
-                        </div>
-
-                        <div className="mb-5 space-y-2">
-                            <div className="flex items-start gap-3 rounded-lg border border-amber-800/40 bg-amber-900/10 px-4 py-3">
-                                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20">
-                                    <span className="text-[10px] font-bold text-amber-400">!</span>
-                                </div>
-                                <p className="text-xs leading-relaxed text-amber-200/90">
-                                    Once burned, this alias will be released and may be allocated to another user in the future. All mail routing to this alias will stop immediately.
-                                </p>
-                            </div>
-                            <div className="flex items-start gap-3 rounded-lg border border-green-800/40 bg-green-900/10 px-4 py-3">
-                                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-500/20">
-                                    <span className="text-[10px] font-bold text-green-400">✓</span>
-                                </div>
-                                <p className="text-xs leading-relaxed text-green-300/90">
-                                    No link between your account and this email address will remain after deletion.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={cancelDelete}
-                                className="flex-1 rounded-lg border border-neutral-700 bg-neutral-800/60 px-4 py-2.5 text-sm font-medium text-neutral-300 transition hover:bg-neutral-800 hover:text-neutral-100"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmDelete}
-                                disabled={deleteMutation.isPending}
-                                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-red-600 to-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-900/30 transition hover:from-red-500 hover:to-red-600 disabled:opacity-50"
-                            >
-                                <Bomb className="h-4 w-4" />
-                                {deleteMutation.isPending ? 'Burning…' : 'Burn Alias'}
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
+            {errorMsg && (
+                <p className="border-l-2 border-red-400 bg-red-500/5 px-4 py-3 font-mono text-xs text-red-400">
+                    {errorMsg}
+                </p>
             )}
-        </div >
-    )
+
+            <Panel ticks className="flex flex-col">
+                <div className="flex h-15 items-center justify-between gap-4 border-b border-neutral-800 px-6">
+                    <div className="flex items-center gap-3">
+                        <Marker size={8} />
+                        <h2 className="font-display text-[17px] font-semibold uppercase tracking-[0.06em] text-neutral-100">
+                            Aliases
+                        </h2>
+                        <span className="border border-neutral-800 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500">
+                            {String(aliases.length).padStart(2, '0')} total
+                        </span>
+                    </div>
+                    <span className="hidden font-mono text-[10px] uppercase tracking-[0.14em] text-neutral-500 sm:inline">
+                        Sorted by creation
+                    </span>
+                </div>
+
+                {}
+                <div className="hidden h-10 items-center gap-4 border-b border-neutral-800 bg-[#0d0d0d] px-6 md:grid md:grid-cols-[minmax(0,1fr)_130px_190px_104px]">
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                        Alias
+                    </span>
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                        Status
+                    </span>
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                        Created
+                    </span>
+                    <span className="text-right font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                        Actions
+                    </span>
+                </div>
+
+                <div className="flex max-h-[26rem] flex-col overflow-y-auto">
+                    {ordered.length === 0 && !isLoading && (
+                        <p className="px-6 py-8 font-mono text-xs text-neutral-500">No aliases yet.</p>
+                    )}
+                    {isLoading && <p className="px-6 py-8 font-mono text-xs text-neutral-500">Loading…</p>}
+                    {ordered.map((a, i) => {
+                        const active = a.status === 'active';
+                        return (
+                            <div
+                                key={a.id || a.alias}
+                                className={cn(
+                                    'grid grid-cols-1 items-start gap-3 border-b border-neutral-800/70 px-6 py-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_130px_190px_104px] md:items-center',
+                                    i % 2 === 0 ? 'bg-[#101010]' : 'bg-[#0d0d0d]',
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        'truncate font-mono text-[13px]',
+                                        active ? 'text-orange-300' : 'text-neutral-500',
+                                    )}
+                                >
+                                    {a.alias || a.address}
+                                </span>
+                                <StatusChip active={active} />
+                                <span className="font-mono text-[11px] text-neutral-500">
+                                    {a.createdAt ? new Date(a.createdAt).toLocaleString() : '—'}
+                                </span>
+                                <div className="flex gap-2 md:justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleToggle(a)}
+                                        disabled={toggleMutation.isPending}
+                                        title={active ? 'Disable alias' : 'Enable alias'}
+                                        aria-label={active ? 'Disable alias' : 'Enable alias'}
+                                        className={cn(
+                                            'flex h-11 w-11 items-center justify-center border transition-colors disabled:opacity-40 md:h-8 md:w-8',
+                                            active
+                                                ? 'border-neutral-700 text-amber-400 hover:border-amber-400'
+                                                : 'border-emerald-400/60 text-emerald-400 hover:border-emerald-400',
+                                        )}
+                                    >
+                                        <PowerSquare className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemove(a)}
+                                        title="Burn alias"
+                                        aria-label="Burn alias"
+                                        className="flex h-11 w-11 items-center justify-center border border-neutral-700 text-red-400 transition-colors hover:border-red-400 md:h-8 md:w-8"
+                                    >
+                                        <TrashSquare className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </Panel>
+
+            <div className="grid gap-5 md:grid-cols-3">
+                {[
+                    {
+                        title: 'Alias pattern',
+                        body: 'Random human-readable triplets — low collision, still memorizable.',
+                    },
+                    {
+                        title: 'Forward routing',
+                        body: 'Mail arrives at your forwarding inbox; upstream services never see your real address.',
+                    },
+                    {
+                        title: 'Revocation',
+                        body: 'Burn an alias any time to immediately stop future delivery attempts.',
+                    },
+                ].map((t) => (
+                    <div key={t.title} className="border border-neutral-800 bg-[#0d0d0d] p-5">
+                        <div className="mb-2.5 flex items-center gap-2.5">
+                            <Marker />
+                            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-300">
+                                {t.title}
+                            </span>
+                        </div>
+                        <p className="text-xs leading-relaxed text-neutral-500">{t.body}</p>
+                    </div>
+                ))}
+            </div>
+
+            {aliasToDelete &&
+                createPortal(
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+                        <Panel
+                            tone="danger"
+                            frameClassName="w-full max-w-md"
+                            className="relative bg-neutral-950 p-6 sm:p-8"
+                        >
+                            <button
+                                type="button"
+                                onClick={cancelDelete}
+                                aria-label="Close"
+                                className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-200"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+
+                            <div className="mb-6 flex flex-col gap-3">
+                                <div className="flex h-12 w-12 items-center justify-center border border-red-400 text-red-400">
+                                    <TrashSquare className="h-6 w-6" />
+                                </div>
+                                <h3 className="font-display text-2xl font-semibold uppercase tracking-[0.04em] text-neutral-100">
+                                    Burn alias?
+                                </h3>
+                                <p className="font-mono text-[11px] text-neutral-500">
+                                    This action is permanent and cannot be undone.
+                                </p>
+                            </div>
+
+                            <div className="mb-5 border border-neutral-800 bg-[#0d0d0d] px-4 py-3">
+                                <span className="font-mono text-sm break-all text-orange-300">
+                                    {aliasToDelete.alias || aliasToDelete.address}
+                                </span>
+                            </div>
+
+                            <div className="mb-6 flex flex-col gap-2.5">
+                                <div className="flex items-start gap-3 border-l-2 border-amber-400 bg-amber-400/10 px-4 py-3">
+                                    <Marker size={5} className="mt-1.5 bg-amber-400" />
+                                    <p className="text-xs leading-relaxed text-amber-200/90">
+                                        Once burned, this alias will be released and may be allocated to another user in
+                                        the future. All mail routing to this alias will stop immediately.
+                                    </p>
+                                </div>
+                                <div className="flex items-start gap-3 border-l-2 border-emerald-400 bg-emerald-400/10 px-4 py-3">
+                                    <Marker size={5} className="mt-1.5 bg-emerald-400" />
+                                    <p className="text-xs leading-relaxed text-emerald-300/90">
+                                        No link between your account and this email address will remain after deletion.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3 sm:flex-row">
+                                <Button variant="outline" className="w-full sm:flex-1" onClick={cancelDelete}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    className="w-full sm:flex-1"
+                                    onClick={confirmDelete}
+                                    disabled={deleteMutation.isPending}
+                                >
+                                    <TrashSquare className="mr-1 h-4 w-4" />
+                                    {deleteMutation.isPending ? 'Burning…' : 'Burn alias'}
+                                </Button>
+                            </div>
+                        </Panel>
+                    </div>,
+                    document.body,
+                )}
+        </div>
+    );
 };
 
 export default AliasesTab;

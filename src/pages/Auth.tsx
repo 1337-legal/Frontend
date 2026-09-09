@@ -1,22 +1,35 @@
-import {ArrowLeft, ArrowRight, Check, Clipboard, Download, ExternalLink, Eye, EyeOff, Github, KeyRound, Lock, Mail, Shield, Zap} from 'lucide-react';
-import React, {useEffect} from 'react';
-import type {SubmitHandler} from 'react-hook-form';
-import {useForm} from 'react-hook-form';
-import {Link, useNavigate} from 'react-router';
-
-import {Badge} from '@Components/ui/badge';
-import {Button} from '@Components/ui/button';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@Components/ui/card';
-import {Separator} from '@Components/ui/separator';
-import AuthNebulaScene from '@Features/auth/components/AuthNebulaScene';
+import { CubeMark, LockSquare, Marker } from '@Components/icons/Lattice';
+import { Badge } from '@Components/ui/badge';
+import { Button } from '@Components/ui/button';
+import { Panel } from '@Components/ui/panel';
 import MnemonicForm from '@Features/auth/components/MnemonicForm';
-import Spark from '@Features/home/components/Spark';
 import SiteFooter from '@Features/shared/components/SiteFooter';
-import {generateMnemonic} from '@scure/bip39';
-import {wordlist} from '@scure/bip39/wordlists/english.js';
+import SiteNav from '@Features/shared/components/SiteNav';
+import { generateMnemonic } from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english.js';
 import BackendService from '@Services/BackendService';
-import {decryptMnemonic, encryptMnemonic} from '@Services/CryptoService';
+import { decryptMnemonic, encryptMnemonic } from '@Services/CryptoService';
 import SessionService from '@Services/SessionService';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Check,
+    Clipboard,
+    Download,
+    Eye,
+    EyeOff,
+    GitFork,
+    KeyRound,
+    Mail,
+    Shield,
+    Zap,
+} from 'lucide-react';
+import React, { useEffect } from 'react';
+import type { SubmitHandler, UseFormRegisterReturn } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from 'react-router';
+
+import { cn } from '@/lib/utils';
 
 const getMessage = (d: unknown, fallback: string) => {
     if (d && typeof d === 'object' && 'message' in d) {
@@ -26,7 +39,6 @@ const getMessage = (d: unknown, fallback: string) => {
     return fallback;
 };
 
-// Input component matching Home page style
 const Input: React.FC<{
     icon?: React.ReactNode;
     type?: string;
@@ -39,14 +51,23 @@ const Input: React.FC<{
     className?: string;
     id?: string;
     autoComplete?: string;
-    register?: any;
-}> = ({ icon, type = 'text', placeholder, value, onChange, showToggle, isPassword, onToggle, className = '', id, autoComplete, register: registerProps }) => (
+    register?: UseFormRegisterReturn;
+}> = ({
+    icon,
+    type = 'text',
+    placeholder,
+    value,
+    onChange,
+    showToggle,
+    isPassword,
+    onToggle,
+    className = '',
+    id,
+    autoComplete,
+    register: registerProps,
+}) => (
     <div className="relative flex items-center">
-        {icon && (
-            <span className="absolute left-3 text-neutral-500">
-                {icon}
-            </span>
-        )}
+        {icon && <span className="pointer-events-none absolute left-3.5 text-neutral-600">{icon}</span>}
         <input
             id={id}
             type={isPassword ? (showToggle ? 'text' : 'password') : type}
@@ -54,14 +75,19 @@ const Input: React.FC<{
             value={value}
             onChange={onChange}
             autoComplete={autoComplete}
-            className={`w-full rounded-md border border-neutral-700 bg-neutral-900/60 ${icon ? 'pl-10' : 'pl-4'} pr-${onToggle ? '10' : '4'} py-2.5 text-sm text-neutral-100 placeholder:text-neutral-500 outline-none transition-colors focus:border-orange-500/60 focus:bg-neutral-900 ${className}`}
+            className={cn(
+                'h-12 w-full border border-neutral-800 bg-neutral-950 font-mono text-sm text-neutral-100 outline-none transition-colors placeholder:text-neutral-600 focus:border-orange-500',
+                icon ? 'pl-11' : 'pl-4',
+                onToggle ? 'pr-12' : 'pr-4',
+                className,
+            )}
             {...registerProps}
         />
         {onToggle && (
             <button
                 type="button"
                 onClick={onToggle}
-                className="absolute right-3 p-1 text-neutral-500 transition-colors hover:text-orange-400"
+                className="absolute right-2 flex h-8 w-8 items-center justify-center text-neutral-600 transition-colors hover:text-orange-400"
                 aria-label={showToggle ? 'Hide' : 'Show'}
             >
                 {showToggle ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -70,10 +96,26 @@ const Input: React.FC<{
     </div>
 );
 
+const PanelHeading: React.FC<{ title: string; description?: string; icon?: React.ReactNode }> = ({
+    title,
+    description,
+    icon,
+}) => (
+    <div className="flex flex-col gap-2">
+        {icon && (
+            <div className="mb-2 flex h-12 w-12 items-center justify-center border border-orange-500 text-orange-500">
+                {icon}
+            </div>
+        )}
+        <h2 className="font-display text-2xl font-semibold uppercase tracking-[0.04em] text-neutral-100">{title}</h2>
+        {description && <p className="text-sm leading-relaxed text-neutral-400">{description}</p>}
+    </div>
+);
+
 const Auth: React.FC = () => {
     const navigate = useNavigate();
-    const [mode, setMode] = React.useState<'choose' | 'have' | 'new' | 'verify' | 'show' | 'unlock'>(
-        () => (SessionService.getEncryptedMnemonic() ? 'unlock' : 'choose')
+    const [mode, setMode] = React.useState<'choose' | 'have' | 'new' | 'verify' | 'show' | 'unlock'>(() =>
+        SessionService.getEncryptedMnemonic() ? 'unlock' : 'choose',
     );
 
     const [generatedMnemonic, setGeneratedMnemonic] = React.useState<string | null>(null);
@@ -101,8 +143,14 @@ const Auth: React.FC = () => {
     const [showUnlockPass, setShowUnlockPass] = React.useState(false);
 
     type NewForm = { email: string; pgp?: string };
-    const { register, handleSubmit, formState: { errors }, watch, resetField } = useForm<NewForm>({
-        defaultValues: { email: '', pgp: '' }
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+        watch,
+        resetField,
+    } = useForm<NewForm>({
+        defaultValues: { email: '', pgp: '' },
     });
 
     const onValidated = async (m: string, address?: string) => {
@@ -114,7 +162,7 @@ const Auth: React.FC = () => {
 
             if (address) setPendingEmail(address);
             setMode('show');
-        } catch { /* noop */ }
+        } catch {}
     };
 
     const handleRegister: SubmitHandler<NewForm> = async ({ email, pgp }) => {
@@ -124,12 +172,14 @@ const Auth: React.FC = () => {
             setGenLoading(true);
             const trimmed = (pgp || '').trim();
             if (trimmed) {
-                try { localStorage.setItem('pgpPublicKey', trimmed); } catch { /* ignore storage errors */ }
+                try {
+                    localStorage.setItem('pgpPublicKey', trimmed);
+                } catch {}
             }
 
             const { status, data } = await BackendService.sendRequest('POST', '/api/v1/auth/send-code', {
                 email,
-                pgp: trimmed || undefined
+                pgp: trimmed || undefined,
             });
             if (status >= 400) {
                 const msg = getMessage(data, 'Failed to start verification');
@@ -152,7 +202,7 @@ const Auth: React.FC = () => {
             const normalized = code.trim();
             const { status, data } = await BackendService.sendRequest('POST', '/api/v1/auth/verify-code', {
                 email: pendingEmail,
-                code: normalized
+                code: normalized,
             });
             if (status >= 400) {
                 const msg = getMessage(data, 'Invalid code');
@@ -169,10 +219,30 @@ const Auth: React.FC = () => {
         }
     };
 
+    const mnemonicWords = React.useMemo(
+        () =>
+            (generatedMnemonic ?? '')
+                .split(' ')
+                .filter(Boolean)
+                .map((word, index) => ({ id: `${index}-${word}`, word, position: index + 1 })),
+        [generatedMnemonic],
+    );
+
     const pgpValue = watch('pgp') || '';
     const isPgpArmored = /BEGIN PGP PUBLIC KEY BLOCK/.test(pgpValue) && /END PGP PUBLIC KEY BLOCK/.test(pgpValue);
 
-    const stepTitle = mode === 'choose' ? 'Choose how to continue' : mode === 'have' ? 'Enter your mnemonic' : mode === 'new' ? 'Start with your email' : mode === 'verify' ? 'Check your inbox' : mode === 'unlock' ? 'Welcome back' : 'Save your mnemonic';
+    const stepTitle =
+        mode === 'choose'
+            ? 'Choose how to continue'
+            : mode === 'have'
+              ? 'Enter your mnemonic'
+              : mode === 'new'
+                ? 'Start with your email'
+                : mode === 'verify'
+                  ? 'Check your inbox'
+                  : mode === 'unlock'
+                    ? 'Welcome back'
+                    : 'Save your mnemonic';
     const stepNum = mode === 'choose' ? 1 : mode === 'show' ? 4 : mode === 'verify' ? 3 : mode === 'unlock' ? 1 : 2;
     const maxSteps = 4;
 
@@ -185,15 +255,21 @@ const Auth: React.FC = () => {
         return score;
     }, [passcode]);
     const passStrengthLabel = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'][passStrength];
-    const passStrengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-emerald-500', 'bg-emerald-400'];
+    const passStrengthColors = ['bg-red-500', 'bg-orange-500', 'bg-amber-400', 'bg-emerald-500', 'bg-emerald-400'];
 
     const canEncrypt = !savingEnc && passcode.length >= 8 && passcode === passcode2;
 
     const handleEncryptContinue = async () => {
         if (!canEncrypt || !generatedMnemonic) return;
         setPassErr('');
-        if (passcode.length < 8) { setPassErr('Passcode must be at least 8 characters'); return; }
-        if (passcode !== passcode2) { setPassErr('Passcodes do not match'); return; }
+        if (passcode.length < 8) {
+            setPassErr('Passcode must be at least 8 characters');
+            return;
+        }
+        if (passcode !== passcode2) {
+            setPassErr('Passcodes do not match');
+            return;
+        }
         try {
             setSavingEnc(true);
             const blob = await encryptMnemonic(passcode, generatedMnemonic);
@@ -218,566 +294,559 @@ const Auth: React.FC = () => {
         return () => window.removeEventListener('keydown', onKey);
     }, [mode]);
 
-
     return (
-        <div className="relative min-h-screen w-full overflow-hidden bg-neutral-950 text-neutral-100">
-            {/* Background - matching Home page style */}
-            <div className="pointer-events-none absolute inset-0">
-                <div className="absolute inset-0 opacity-40">
-                    <AuthNebulaScene />
-                </div>
-                <div className="absolute left-1/2 top-[-15%] h-[640px] w-[1100px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(251,146,60,0.18),transparent_60%)] blur-3xl" />
-                <div className="absolute right-[-10%] bottom-[-10%] h-[480px] w-[620px] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,115,60,0.14),transparent_70%)] blur-3xl" />
-            </div>
-
-            {/* Header */}
-            <header className="relative z-10 mx-auto flex max-w-7xl flex-col gap-6 px-6 pt-16 pb-8 md:pt-24">
+        <div className="min-h-screen w-full bg-neutral-950 text-neutral-100">
+            <SiteNav>
                 <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="sm" className="text-neutral-400 hover:text-orange-300 hover:bg-transparent" asChild>
+                    <Marker size={6} className="bg-emerald-400" />
+                    <span className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-neutral-400 sm:inline">
+                        Local key derivation
+                    </span>
+                </div>
+            </SiteNav>
+
+            <header className="lattice border-b border-neutral-800">
+                <div className="mx-auto flex max-w-7xl flex-col items-start px-6 py-16 lg:px-12">
+                    <Button variant="ghost" size="sm" className="mb-8 px-0" asChild>
                         <Link to="/">
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
+                            <ArrowLeft className="mr-2 h-4 w-4" /> Back to home
                         </Link>
                     </Button>
+
+                    <div className="mb-8 flex flex-wrap items-center gap-2.5">
+                        <Badge variant="outline" className="gap-2 border-orange-500 text-orange-300">
+                            <Marker /> Authentication
+                        </Badge>
+                        <Badge>
+                            Step {stepNum}/{maxSteps}
+                        </Badge>
+                    </div>
+
+                    <h1 className="font-display text-4xl font-bold uppercase leading-[0.98] tracking-tight text-neutral-100 text-balance md:text-5xl">
+                        {stepTitle}
+                    </h1>
+                    <p className="mt-4 font-display text-xl font-semibold uppercase tracking-[0.03em] text-orange-500 md:text-2xl">
+                        {mode === 'unlock'
+                            ? 'Secure access'
+                            : mode === 'show'
+                              ? 'Your recovery phrase'
+                              : 'Zero-knowledge auth'}
+                    </p>
+
+                    <div className="mt-8 flex items-center">
+                        <Marker size={8} />
+                        <span aria-hidden className="block h-px w-26 bg-neutral-700" />
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="border-orange-400/50 bg-neutral-900/60 text-orange-300 backdrop-blur">
-                        <Spark className="mr-1" /> Authentication
-                    </Badge>
-                    <Badge className="bg-orange-600/25 text-orange-200 hover:bg-orange-600/30">
-                        Step {mode === 'unlock' ? 1 : stepNum}/{maxSteps}
-                    </Badge>
-                </div>
-                <h1 className="text-balance font-cal text-3xl leading-tight tracking-tight md:text-5xl text-neutral-100">
-                    {stepTitle}
-                    <span className="block bg-linear-to-r from-orange-400 via-orange-300 to-amber-200 bg-clip-text font-semibold text-transparent">
-                        {mode === 'unlock' ? 'Secure Access' : mode === 'show' ? 'Your Recovery Phrase' : 'Zero-Knowledge Auth'}
-                    </span>
-                </h1>
-                <span aria-hidden className="block h-px w-24 bg-linear-to-r from-orange-400/60 to-transparent" />
             </header>
 
-            {/* Main Content */}
-            <main className="relative z-10 mx-auto max-w-7xl px-6 pb-24">
-                <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
-                    {/* Left Column - Main Form */}
-                    <div className="space-y-6">
-                        {/* Unlock Mode */}
+            <main className="mx-auto max-w-7xl px-6 py-16 lg:px-12">
+                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+                    <div className="flex flex-col gap-6">
                         {mode === 'unlock' && (
-                            <Card className="border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-                                <CardHeader className="text-center">
-                                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400">
-                                        <Lock className="h-7 w-7" />
-                                    </div>
-                                    <CardTitle className="text-xl text-neutral-100">Welcome back</CardTitle>
-                                    <CardDescription className="text-neutral-400">
-                                        Enter your passcode to unlock your encrypted mnemonic
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="mx-auto max-w-sm space-y-4">
-                                        <Input
-                                            icon={<KeyRound className="h-4 w-4" />}
-                                            isPassword
-                                            showToggle={showUnlockPass}
-                                            onToggle={() => setShowUnlockPass(v => !v)}
-                                            placeholder="Enter your passcode"
-                                            value={unlockPass}
-                                            onChange={(e) => setUnlockPass(e.target.value)}
-                                        />
-                                        {unlockErr && (
-                                            <p className="text-sm text-red-400 text-center">{unlockErr}</p>
-                                        )}
-                                        <Button
-                                            size="lg"
-                                            className="w-full bg-orange-500 text-neutral-900 hover:bg-orange-400"
-                                            disabled={unlockLoading || unlockPass.length < 1}
-                                            onClick={async () => {
-                                                setUnlockErr('');
-                                                try {
-                                                    setUnlockLoading(true);
-                                                    const blob = SessionService.getEncryptedMnemonic();
-                                                    if (!blob) { setUnlockErr('No encrypted data found.'); setMode('choose'); return; }
-                                                    const m = await decryptMnemonic(unlockPass, blob);
-                                                    await BackendService.auth(m);
-                                                    navigate('/account');
-                                                } catch {
-                                                    setUnlockErr('Incorrect passcode or corrupted data.');
-                                                } finally {
-                                                    setUnlockLoading(false);
+                            <Panel ticks className="flex flex-col gap-6 p-6 sm:p-8">
+                                <PanelHeading
+                                    icon={<LockSquare className="h-6 w-6" />}
+                                    title="Welcome back"
+                                    description="Enter your passcode to unlock your encrypted mnemonic."
+                                />
+                                <div className="flex max-w-sm flex-col gap-4">
+                                    <Input
+                                        icon={<KeyRound className="h-4 w-4" />}
+                                        isPassword
+                                        showToggle={showUnlockPass}
+                                        onToggle={() => setShowUnlockPass((v) => !v)}
+                                        placeholder="Enter your passcode"
+                                        value={unlockPass}
+                                        onChange={(e) => setUnlockPass(e.target.value)}
+                                    />
+                                    {unlockErr && <p className="text-sm text-red-400">{unlockErr}</p>}
+                                    <Button
+                                        size="lg"
+                                        className="w-full"
+                                        disabled={unlockLoading || unlockPass.length < 1}
+                                        onClick={async () => {
+                                            setUnlockErr('');
+                                            try {
+                                                setUnlockLoading(true);
+                                                const blob = SessionService.getEncryptedMnemonic();
+                                                if (!blob) {
+                                                    setUnlockErr('No encrypted data found.');
+                                                    setMode('choose');
+                                                    return;
                                                 }
-                                            }}
-                                        >
-                                            {unlockLoading ? 'Unlocking...' : 'Unlock'} <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Button>
-                                        <Separator className="bg-neutral-800" />
-                                        <Button
-                                            variant="ghost"
-                                            className="w-full text-neutral-400 hover:text-orange-300 hover:bg-transparent"
-                                            onClick={() => setMode('choose')}
-                                        >
-                                            Use a different mnemonic
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                                const m = await decryptMnemonic(unlockPass, blob);
+                                                await BackendService.auth(m);
+                                                navigate('/account');
+                                            } catch {
+                                                setUnlockErr('Incorrect passcode or corrupted data.');
+                                            } finally {
+                                                setUnlockLoading(false);
+                                            }
+                                        }}
+                                    >
+                                        {unlockLoading ? 'Unlocking…' : 'Unlock'}{' '}
+                                        <ArrowRight className="ml-1 h-4 w-4" />
+                                    </Button>
+                                    <span aria-hidden className="h-px bg-neutral-800" />
+                                    <Button variant="ghost" className="w-full" onClick={() => setMode('choose')}>
+                                        Use a different mnemonic
+                                    </Button>
+                                </div>
+                            </Panel>
                         )}
 
-                        {/* Choose Mode */}
                         {mode === 'choose' && (
                             <div className="grid gap-6 md:grid-cols-2">
-                                <Card
-                                    className="group cursor-pointer border-neutral-800 bg-neutral-950/50 backdrop-blur-sm transition hover:border-orange-500/50 hover:shadow-[0_0_0_1px_rgba(251,146,60,0.35),0_8px_30px_-8px_rgba(251,146,60,0.4)]"
+                                <button
+                                    type="button"
                                     onClick={() => setMode('have')}
+                                    aria-label="Sign in with an existing mnemonic"
+                                    className="group h-full text-left"
                                 >
-                                    <CardHeader className="space-y-4">
-                                        <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400 transition-transform group-hover:scale-110">
+                                    <Panel
+                                        tone="accent"
+                                        frameClassName="h-full"
+                                        className="flex h-full flex-col gap-4 bg-[#151007] p-7 transition-colors group-hover:bg-[#1a1209]"
+                                    >
+                                        <div className="flex h-12 w-12 items-center justify-center border border-orange-500 text-orange-500">
                                             <KeyRound className="h-6 w-6" />
                                         </div>
-                                        <CardTitle className="text-lg text-neutral-100">I have a mnemonic</CardTitle>
-                                        <CardDescription className="text-neutral-400">
-                                            Sign in using your existing 24-word recovery phrase
-                                        </CardDescription>
-                                        <div className="flex items-center gap-2 text-sm font-medium text-orange-400 opacity-0 transition-opacity group-hover:opacity-100">
-                                            Continue <ArrowRight className="h-4 w-4" />
-                                        </div>
-                                    </CardHeader>
-                                </Card>
-                                <Card
-                                    className="group cursor-pointer border-neutral-800 bg-neutral-950/50 backdrop-blur-sm transition hover:border-orange-500/50 hover:shadow-[0_0_0_1px_rgba(251,146,60,0.35),0_8px_30px_-8px_rgba(251,146,60,0.4)]"
+                                        <h2 className="font-display text-lg font-semibold uppercase tracking-[0.04em] text-neutral-100">
+                                            I have a mnemonic
+                                        </h2>
+                                        <p className="text-sm leading-relaxed text-neutral-400">
+                                            Sign in using your existing 24-word recovery phrase.
+                                        </p>
+                                        <span className="mt-auto flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-400">
+                                            Continue <ArrowRight className="h-3.5 w-3.5" />
+                                        </span>
+                                    </Panel>
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={() => setMode('new')}
+                                    aria-label="Create a new account"
+                                    className="group h-full text-left"
                                 >
-                                    <CardHeader className="space-y-4">
-                                        <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400 transition-transform group-hover:scale-110">
+                                    <Panel
+                                        frameClassName="h-full"
+                                        className="flex h-full flex-col gap-4 bg-[#0d0d0d] p-7 transition-colors group-hover:bg-[#121212]"
+                                    >
+                                        <div className="flex h-12 w-12 items-center justify-center border border-neutral-700 text-neutral-400">
                                             <Mail className="h-6 w-6" />
                                         </div>
-                                        <CardTitle className="text-lg text-neutral-100">I'm new here</CardTitle>
-                                        <CardDescription className="text-neutral-400">
-                                            Create a new account and get your recovery phrase
-                                        </CardDescription>
-                                        <div className="flex items-center gap-2 text-sm font-medium text-orange-400 opacity-0 transition-opacity group-hover:opacity-100">
-                                            Get started <ArrowRight className="h-4 w-4" />
-                                        </div>
-                                    </CardHeader>
-                                </Card>
+                                        <h2 className="font-display text-lg font-semibold uppercase tracking-[0.04em] text-neutral-100">
+                                            I&apos;m new here
+                                        </h2>
+                                        <p className="text-sm leading-relaxed text-neutral-400">
+                                            Create a new account and get your recovery phrase.
+                                        </p>
+                                        <span className="mt-auto flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-500 group-hover:text-orange-400">
+                                            Get started <ArrowRight className="h-3.5 w-3.5" />
+                                        </span>
+                                    </Panel>
+                                </button>
                             </div>
                         )}
 
-                        {/* Have Mnemonic Mode */}
                         {mode === 'have' && (
-                            <Card className="border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-                                <CardHeader>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-fit text-neutral-400 hover:text-orange-300 hover:bg-transparent"
-                                        onClick={() => setMode('choose')}
-                                    >
-                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                                    </Button>
-                                </CardHeader>
-                                <CardContent>
-                                    <MnemonicForm onValidated={onValidated} />
-                                </CardContent>
-                            </Card>
+                            <Panel ticks className="flex flex-col gap-6 p-6 sm:p-8">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-fit px-0"
+                                    onClick={() => setMode('choose')}
+                                >
+                                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                </Button>
+                                <MnemonicForm onValidated={onValidated} />
+                            </Panel>
                         )}
 
-                        {/* New User Mode */}
                         {mode === 'new' && (
-                            <Card className="border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-                                <CardHeader>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-fit text-neutral-400 hover:text-orange-300 hover:bg-transparent"
-                                        onClick={() => setMode('choose')}
-                                    >
-                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                                    </Button>
-                                    <div className="text-center pt-4">
-                                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-orange-500/10 text-orange-400">
-                                            <Mail className="h-7 w-7" />
-                                        </div>
-                                        <CardTitle className="text-xl text-neutral-100">Let's get started</CardTitle>
-                                        <CardDescription className="text-neutral-400 mt-2">
-                                            We'll send a verification code to your email, then generate your secure mnemonic
-                                        </CardDescription>
+                            <Panel ticks className="flex flex-col gap-6 p-6 sm:p-8">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-fit px-0"
+                                    onClick={() => setMode('choose')}
+                                >
+                                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                </Button>
+                                <PanelHeading
+                                    icon={<Mail className="h-6 w-6" />}
+                                    title="Let's get started"
+                                    description="We'll send a verification code to your email, then generate your secure mnemonic."
+                                />
+                                <form onSubmit={handleSubmit(handleRegister)} className="flex max-w-md flex-col gap-4">
+                                    <div>
+                                        <label
+                                            className="mb-2 block font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500"
+                                            htmlFor="email"
+                                        >
+                                            Email address
+                                        </label>
+                                        <Input
+                                            id="email"
+                                            icon={<Mail className="h-4 w-4" />}
+                                            type="email"
+                                            placeholder="you@example.com"
+                                            register={register('email', {
+                                                required: 'Email is required',
+                                                pattern: {
+                                                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                                    message: 'Enter a valid email',
+                                                },
+                                            })}
+                                        />
+                                        {errors.email && (
+                                            <p className="mt-2 text-sm text-red-400">{errors.email.message}</p>
+                                        )}
                                     </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <form onSubmit={handleSubmit(handleRegister)} className="mx-auto max-w-md space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-neutral-300 mb-2" htmlFor="email">
-                                                Email address
-                                            </label>
-                                            <Input
-                                                id="email"
-                                                icon={<Mail className="h-4 w-4" />}
-                                                type="email"
-                                                placeholder="you@example.com"
-                                                register={register('email', {
-                                                    required: 'Email is required',
-                                                    pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email' }
+
+                                    {!showPGP ? (
+                                        <button
+                                            type="button"
+                                            aria-label="Add a PGP public key"
+                                            onClick={() => setShowPGP(true)}
+                                            className="border border-dashed border-orange-500/50 bg-orange-500/5 p-4 text-left transition-colors hover:border-orange-500 hover:bg-orange-500/10"
+                                        >
+                                            <div className="flex items-start gap-3.5">
+                                                <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-orange-500/50">
+                                                    <KeyRound className="h-4 w-4 text-orange-400" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                                                        <span className="font-display text-sm font-semibold uppercase tracking-[0.04em] text-orange-200">
+                                                            Add PGP public key
+                                                        </span>
+                                                        <Badge>Recommended</Badge>
+                                                    </div>
+                                                    <p className="text-xs text-neutral-500">
+                                                        Encrypt your verification email end-to-end.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ) : (
+                                        <div className="flex flex-col gap-3 border border-orange-500/50 bg-orange-500/5 p-4">
+                                            <div className="flex items-center justify-between">
+                                                <label
+                                                    htmlFor="pgp"
+                                                    className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400"
+                                                >
+                                                    PGP public key
+                                                </label>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-auto px-0"
+                                                    onClick={() => {
+                                                        setShowPGP(false);
+                                                        resetField('pgp');
+                                                    }}
+                                                >
+                                                    Remove
+                                                </Button>
+                                            </div>
+                                            <textarea
+                                                id="pgp"
+                                                placeholder={
+                                                    '-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----'
+                                                }
+                                                className="h-28 w-full resize-y border border-neutral-800 bg-neutral-950 px-3 py-2.5 font-mono text-xs text-neutral-200 outline-none transition-colors placeholder:text-neutral-600 focus:border-orange-500"
+                                                {...register('pgp', {
+                                                    validate: (v) =>
+                                                        !v ||
+                                                        (/BEGIN PGP PUBLIC KEY BLOCK/.test(v) &&
+                                                            /END PGP PUBLIC KEY BLOCK/.test(v)) ||
+                                                        'Invalid PGP public key',
                                                 })}
                                             />
-                                            {errors.email && (
-                                                <p className="mt-2 text-sm text-red-400">{errors.email.message}</p>
+                                            {errors.pgp && (
+                                                <p className="text-sm text-red-400">{errors.pgp.message as string}</p>
+                                            )}
+                                            {isPgpArmored && (
+                                                <p className="flex items-center gap-2 text-sm text-emerald-400">
+                                                    <Check className="h-4 w-4" /> Your verification email will be
+                                                    encrypted
+                                                </p>
                                             )}
                                         </div>
+                                    )}
 
-                                        {/* PGP Section */}
-                                        {!showPGP ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPGP(true)}
-                                                className="w-full rounded-md border border-dashed border-orange-500/40 bg-orange-500/5 p-4 text-left transition-all hover:border-orange-500/60 hover:bg-orange-500/10"
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/10">
-                                                        <KeyRound className="h-4 w-4 text-orange-400" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-sm font-medium text-orange-200">Add PGP public key</span>
-                                                            <Badge className="bg-orange-600/25 text-orange-200 text-[10px]">Recommended</Badge>
-                                                        </div>
-                                                        <p className="text-xs text-neutral-500">
-                                                            Encrypt your verification email end-to-end
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ) : (
-                                            <div className="rounded-md border border-orange-500/40 bg-orange-500/5 p-4 space-y-3">
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-sm font-medium text-neutral-300">PGP Public Key</label>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-neutral-500 hover:text-orange-300 hover:bg-transparent h-auto p-0"
-                                                        onClick={() => { setShowPGP(false); resetField('pgp'); }}
-                                                    >
-                                                        Remove
-                                                    </Button>
-                                                </div>
-                                                <textarea
-                                                    id="pgp"
-                                                    placeholder={`-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----`}
-                                                    className="w-full h-28 resize-y rounded-md border border-neutral-700 bg-neutral-900/60 px-3 py-2 text-xs font-mono text-neutral-200 placeholder:text-neutral-600 outline-none transition-colors focus:border-orange-500/60"
-                                                    {...register('pgp', {
-                                                        validate: (v) => !v || (/BEGIN PGP PUBLIC KEY BLOCK/.test(v) && /END PGP PUBLIC KEY BLOCK/.test(v)) || 'Invalid PGP public key'
-                                                    })}
-                                                />
-                                                {errors.pgp && (
-                                                    <p className="text-sm text-red-400">{errors.pgp.message as string}</p>
-                                                )}
-                                                {isPgpArmored && (
-                                                    <p className="flex items-center gap-2 text-sm text-emerald-400">
-                                                        <Check className="h-4 w-4" /> Your verification email will be encrypted
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
+                                    <p className="font-mono text-[11px] text-neutral-500">
+                                        We never sell your email. Only opt-in notifications.
+                                    </p>
+                                    {startError && <p className="text-sm text-red-400">{startError}</p>}
 
-                                        <p className="text-xs text-neutral-500 text-center">
-                                            We never sell your email. Only opt-in notifications.
-                                        </p>
-
-                                        {startError && (
-                                            <p className="text-sm text-red-400 text-center">{startError}</p>
-                                        )}
-
-                                        <Button
-                                            type="submit"
-                                            size="lg"
-                                            className="w-full bg-orange-500 text-neutral-900 hover:bg-orange-400"
-                                            disabled={genLoading}
-                                        >
-                                            {genLoading ? 'Sending code...' : 'Continue'} <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Button>
-                                    </form>
-                                </CardContent>
-                            </Card>
+                                    <Button type="submit" size="lg" className="w-full" disabled={genLoading}>
+                                        {genLoading ? 'Sending code…' : 'Continue'}{' '}
+                                        <ArrowRight className="ml-1 h-4 w-4" />
+                                    </Button>
+                                </form>
+                            </Panel>
                         )}
 
-                        {/* Verify Mode */}
                         {mode === 'verify' && (
-                            <Card className="border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-                                <CardHeader>
+                            <Panel ticks className="flex flex-col gap-6 p-6 sm:p-8">
+                                <Button variant="ghost" size="sm" className="w-fit px-0" onClick={() => setMode('new')}>
+                                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                </Button>
+                                <div className="flex flex-col gap-2">
+                                    <div className="mb-2 flex h-12 w-12 items-center justify-center border border-emerald-400 text-emerald-400">
+                                        <Mail className="h-6 w-6" />
+                                    </div>
+                                    <h2 className="font-display text-2xl font-semibold uppercase tracking-[0.04em] text-neutral-100">
+                                        Check your inbox
+                                    </h2>
+                                    <p className="text-sm leading-relaxed text-neutral-400">
+                                        We sent a 3-word verification code to{' '}
+                                        <span className="font-mono text-orange-300">{pendingEmail}</span>
+                                    </p>
+                                </div>
+                                <div className="flex max-w-sm flex-col gap-4">
+                                    <div>
+                                        <label
+                                            htmlFor="verification-code"
+                                            className="mb-2 block font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500"
+                                        >
+                                            Verification code
+                                        </label>
+                                        <input
+                                            id="verification-code"
+                                            value={code}
+                                            onChange={(e) => setCode(e.target.value)}
+                                            placeholder="word word word"
+                                            className="h-14 w-full border border-neutral-800 bg-neutral-950 px-4 text-center font-mono text-lg tracking-[0.2em] text-neutral-100 outline-none transition-colors placeholder:text-neutral-600 focus:border-orange-500"
+                                        />
+                                    </div>
+                                    {verifyError && <p className="text-sm text-red-400">{verifyError}</p>}
+                                    <Button
+                                        size="lg"
+                                        className="w-full"
+                                        disabled={verifyLoading || code.trim().split(/\s+/).length < 3}
+                                        onClick={submitVerification}
+                                    >
+                                        {verifyLoading ? 'Verifying…' : 'Verify'}{' '}
+                                        <ArrowRight className="ml-1 h-4 w-4" />
+                                    </Button>
+                                    <p className="font-mono text-[11px] text-neutral-500">
+                                        The code uses words from the BIP39 wordlist. Keep the order.
+                                    </p>
+                                </div>
+                            </Panel>
+                        )}
+
+                        {mode === 'show' && generatedMnemonic && (
+                            <Panel ticks className="flex flex-col gap-6 p-6 sm:p-8">
+                                <div className="flex items-center justify-between">
+                                    <Button variant="ghost" size="sm" className="px-0" onClick={() => setMode('new')}>
+                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                    </Button>
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="w-fit text-neutral-400 hover:text-orange-300 hover:bg-transparent"
-                                        onClick={() => setMode('new')}
+                                        className="px-0"
+                                        onClick={() => setMode('choose')}
                                     >
-                                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                        Start over
                                     </Button>
-                                    <div className="text-center pt-4">
-                                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
-                                            <Mail className="h-7 w-7" />
-                                        </div>
-                                        <CardTitle className="text-xl text-neutral-100">Check your inbox</CardTitle>
-                                        <CardDescription className="text-neutral-400 mt-2">
-                                            We sent a 3-word verification code to <span className="text-orange-300 font-medium">{pendingEmail}</span>
-                                        </CardDescription>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="mx-auto max-w-sm space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-neutral-300 mb-2">Verification code</label>
-                                            <input
-                                                aria-label="verification code"
-                                                value={code}
-                                                onChange={e => setCode(e.target.value)}
-                                                placeholder="word word word"
-                                                className="w-full rounded-md border border-neutral-700 bg-neutral-900/60 px-4 py-3 text-center text-lg font-mono tracking-widest text-neutral-100 placeholder:text-neutral-600 outline-none transition-colors focus:border-orange-500/60"
-                                            />
-                                        </div>
-                                        {verifyError && (
-                                            <p className="text-sm text-red-400 text-center">{verifyError}</p>
-                                        )}
-                                        <Button
-                                            size="lg"
-                                            className="w-full bg-orange-500 text-neutral-900 hover:bg-orange-400"
-                                            disabled={verifyLoading || code.trim().split(/\s+/).length < 3}
-                                            onClick={submitVerification}
-                                        >
-                                            {verifyLoading ? 'Verifying...' : 'Verify'} <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Button>
-                                        <p className="text-xs text-neutral-500 text-center">
-                                            The code uses words from the BIP39 wordlist. Keep the order.
+                                </div>
+
+                                <div className="flex gap-3.5 border-l-2 border-amber-400 bg-amber-400/10 p-4">
+                                    <Shield className="h-5 w-5 shrink-0 text-amber-400" />
+                                    <div>
+                                        <h4 className="mb-1 font-display text-sm font-semibold uppercase tracking-[0.04em] text-amber-200">
+                                            Save this phrase securely
+                                        </h4>
+                                        <p className="text-xs leading-relaxed text-amber-200/70">
+                                            Write it down and store it in a safe place. This phrase grants full access
+                                            to your account. Never share it with anyone.
                                         </p>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        )}
+                                </div>
 
-                        {/* Show Mnemonic Mode */}
-                        {mode === 'show' && generatedMnemonic && (
-                            <Card className="border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-                                <CardHeader>
-                                    <div className="flex items-center justify-between">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-neutral-400 hover:text-orange-300 hover:bg-transparent"
-                                            onClick={() => setMode('new')}
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                                    {mnemonicWords.map(({ id, word, position }) => (
+                                        <div
+                                            key={id}
+                                            className="relative flex h-12 items-center border border-neutral-800 bg-[#0d0d0d] pl-9 pr-3"
                                         >
-                                            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-neutral-500 hover:text-orange-300 hover:bg-transparent"
-                                            onClick={() => setMode('choose')}
-                                        >
-                                            Start over
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {/* Warning Banner */}
-                                    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4">
-                                        <div className="flex gap-3">
-                                            <Shield className="h-5 w-5 text-amber-400 shrink-0" />
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-amber-200 mb-1">Save this phrase securely</h4>
-                                                <p className="text-xs text-amber-200/70">
-                                                    Write it down and store it in a safe place. This phrase grants full access to your account. Never share it with anyone.
-                                                </p>
-                                            </div>
+                                            <span className="absolute left-0 top-0 flex h-full w-7 items-center justify-center bg-[#1c1c1c] font-mono text-[9px] font-semibold text-orange-300">
+                                                {String(position).padStart(2, '0')}
+                                            </span>
+                                            <span className="truncate font-mono text-[13px] text-neutral-100">
+                                                {word}
+                                            </span>
                                         </div>
+                                    ))}
+                                </div>
+
+                                <Button
+                                    variant="outline"
+                                    className="w-fit"
+                                    onClick={async () => {
+                                        try {
+                                            await navigator.clipboard?.writeText(generatedMnemonic);
+                                            setCopied(true);
+                                            setTimeout(() => setCopied(false), 2000);
+                                        } catch {}
+                                    }}
+                                >
+                                    {copied ? (
+                                        <Check className="mr-1 h-4 w-4" />
+                                    ) : (
+                                        <Clipboard className="mr-1 h-4 w-4" />
+                                    )}
+                                    {copied ? 'Copied' : 'Copy to clipboard'}
+                                </Button>
+
+                                <span aria-hidden className="h-px bg-neutral-800" />
+
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center gap-2.5">
+                                        <LockSquare className="h-4 w-4 text-orange-500" />
+                                        <h4 className="font-display text-base font-semibold uppercase tracking-[0.04em] text-neutral-100">
+                                            Create a passcode
+                                        </h4>
+                                    </div>
+                                    <p className="text-xs leading-relaxed text-neutral-500">
+                                        Your mnemonic will be encrypted with this passcode and stored locally. We never
+                                        see your passcode.
+                                    </p>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <Input
+                                            isPassword
+                                            showToggle={showPass}
+                                            onToggle={() => setShowPass((v) => !v)}
+                                            placeholder="Passcode (min 8 chars)"
+                                            value={passcode}
+                                            onChange={(e) => setPasscode(e.target.value)}
+                                            autoComplete="new-password"
+                                        />
+                                        <Input
+                                            isPassword
+                                            showToggle={showPass2}
+                                            onToggle={() => setShowPass2((v) => !v)}
+                                            placeholder="Confirm passcode"
+                                            value={passcode2}
+                                            onChange={(e) => setPasscode2(e.target.value)}
+                                            autoComplete="new-password"
+                                        />
                                     </div>
 
-                                    {/* Mnemonic Grid */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                                        {generatedMnemonic.split(' ').map((w, i) => (
-                                            <div
-                                                key={i}
-                                                className="group flex items-center gap-2 rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 transition hover:border-orange-500/40"
-                                            >
-                                                <span className="flex h-5 w-5 items-center justify-center rounded bg-neutral-800 text-[10px] font-bold text-neutral-500 group-hover:text-orange-400">
-                                                    {i + 1}
-                                                </span>
-                                                <span className="text-sm font-mono text-neutral-200 truncate">{w}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Copy Button */}
-                                    <div className="flex justify-center">
-                                        <Button
-                                            variant="outline"
-                                            className="border-neutral-700 hover:border-neutral-600 text-neutral-200 hover:text-neutral-100 bg-neutral-900/40 hover:bg-neutral-800/60"
-                                            onClick={async () => {
-                                                try {
-                                                    await navigator.clipboard?.writeText(generatedMnemonic);
-                                                    setCopied(true);
-                                                    setTimeout(() => setCopied(false), 2000);
-                                                } catch { /* noop */ }
-                                            }}
-                                        >
-                                            {copied ? <Check className="mr-2 h-4 w-4" /> : <Clipboard className="mr-2 h-4 w-4" />}
-                                            {copied ? 'Copied!' : 'Copy to clipboard'}
-                                        </Button>
-                                    </div>
-
-                                    <Separator className="bg-neutral-800" />
-
-                                    {/* Passcode Section */}
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-2">
-                                            <Lock className="h-4 w-4 text-orange-400" />
-                                            <h4 className="text-sm font-semibold text-neutral-200">Create a passcode</h4>
-                                        </div>
-                                        <p className="text-xs text-neutral-500">
-                                            Your mnemonic will be encrypted with this passcode and stored locally. We never see your passcode.
-                                        </p>
-                                        <div className="grid gap-3 sm:grid-cols-2">
-                                            <Input
-                                                isPassword
-                                                showToggle={showPass}
-                                                onToggle={() => setShowPass(v => !v)}
-                                                placeholder="Passcode (min 8 chars)"
-                                                value={passcode}
-                                                onChange={(e) => setPasscode(e.target.value)}
-                                                autoComplete="new-password"
-                                            />
-                                            <Input
-                                                isPassword
-                                                showToggle={showPass2}
-                                                onToggle={() => setShowPass2(v => !v)}
-                                                placeholder="Confirm passcode"
-                                                value={passcode2}
-                                                onChange={(e) => setPasscode2(e.target.value)}
-                                                autoComplete="new-password"
-                                            />
-                                        </div>
-
-                                        {/* Strength Indicator */}
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-1 h-1.5 rounded-full bg-neutral-800 overflow-hidden">
-                                                <div
-                                                    className={`h-full rounded-full transition-all duration-300 ${passStrengthColors[passStrength]}`}
-                                                    style={{ width: `${(passStrength / 4) * 100}%` }}
+                                    {}
+                                    <div className="flex items-center gap-4">
+                                        <div className="grid flex-grow grid-cols-4 gap-1.5">
+                                            {[0, 1, 2, 3].map((i) => (
+                                                <span
+                                                    key={i}
+                                                    className={cn(
+                                                        'h-2 transition-colors',
+                                                        i < passStrength
+                                                            ? passStrengthColors[passStrength]
+                                                            : 'bg-neutral-800',
+                                                    )}
                                                 />
-                                            </div>
-                                            <span className="text-xs text-neutral-500 w-16">{passcode ? passStrengthLabel : 'Strength'}</span>
+                                            ))}
                                         </div>
-
-                                        {passErr && (
-                                            <p className="text-sm text-red-400">{passErr}</p>
-                                        )}
-
-                                        <Button
-                                            size="lg"
-                                            className="w-full bg-orange-500 text-neutral-900 hover:bg-orange-400"
-                                            disabled={!canEncrypt}
-                                            onClick={handleEncryptContinue}
-                                        >
-                                            {savingEnc ? 'Encrypting...' : 'Encrypt & Continue'} <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Button>
+                                        <span className="w-20 font-mono text-[10px] uppercase tracking-[0.14em] text-neutral-500">
+                                            {passcode ? passStrengthLabel : 'Strength'}
+                                        </span>
                                     </div>
-                                </CardContent>
-                            </Card>
+
+                                    {passErr && <p className="text-sm text-red-400">{passErr}</p>}
+
+                                    <Button
+                                        size="lg"
+                                        className="w-full"
+                                        disabled={!canEncrypt}
+                                        onClick={handleEncryptContinue}
+                                    >
+                                        {savingEnc ? 'Encrypting…' : 'Encrypt & continue'}{' '}
+                                        <ArrowRight className="ml-1 h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </Panel>
                         )}
                     </div>
 
-                    {/* Right Column - Sidebar */}
-                    <aside className="hidden lg:block space-y-6">
-                        <Card className="border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-                            <CardHeader className="space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/10">
-                                        <Download className="h-4 w-4 text-orange-400" />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-sm text-neutral-200">Browser Extension</CardTitle>
-                                        <CardDescription className="text-xs">In-context alias generation</CardDescription>
-                                    </div>
+                    <aside className="hidden flex-col gap-6 lg:flex">
+                        <Panel className="flex flex-col gap-4 bg-[#0d0d0d] p-6">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-neutral-700">
+                                    <Download className="h-4 w-4 text-orange-500" />
                                 </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button size="sm" className="bg-orange-500 text-neutral-900 hover:bg-orange-400" asChild>
-                                        <a href="https://chromewebstore.google.com/detail/placeholder" target="_blank" rel="noopener noreferrer">
-                                            Chrome <ExternalLink className="ml-1 h-3 w-3" />
-                                        </a>
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="border-neutral-700 hover:border-neutral-600 text-neutral-200 hover:text-neutral-100 bg-neutral-900/40 hover:bg-neutral-800/60"
-                                        asChild
-                                    >
-                                        <a href="https://addons.mozilla.org/en-US/firefox/addon/placeholder" target="_blank" rel="noopener noreferrer">
-                                            Firefox <ExternalLink className="ml-1 h-3 w-3" />
-                                        </a>
-                                    </Button>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-display text-sm font-semibold uppercase tracking-[0.04em] text-neutral-100">
+                                        Browser extension
+                                    </span>
+                                    <span className="text-xs text-neutral-500">In-context alias generation</span>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                            <Badge variant="outline" className="gap-2 border-amber-400 text-amber-300">
+                                <Marker size={5} className="bg-amber-400" /> In development
+                            </Badge>
+                            <p className="text-xs leading-relaxed text-neutral-500">
+                                Not available to install yet — the Chrome and Firefox builds are still in development.
+                            </p>
+                        </Panel>
 
-                        <Card className="border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-                            <CardHeader className="space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/10">
-                                        <Zap className="h-4 w-4 text-orange-400" />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-sm text-neutral-200">Developer Tools</CardTitle>
-                                        <CardDescription className="text-xs">API & CLI access</CardDescription>
-                                    </div>
+                        <Panel className="flex flex-col gap-4 bg-[#0d0d0d] p-6">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-neutral-700">
+                                    <Zap className="h-4 w-4 text-orange-500" />
                                 </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button size="sm" className="bg-orange-500 text-neutral-900 hover:bg-orange-400" asChild>
-                                        <Link to="https://api.1337.legal/swagger" target="_blank">
-                                            <Zap className="mr-1 h-3 w-3" /> Swagger
-                                        </Link>
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="border-neutral-700 hover:border-neutral-600 text-neutral-200 hover:text-neutral-100 bg-neutral-900/40 hover:bg-neutral-800/60"
-                                        asChild
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-display text-sm font-semibold uppercase tracking-[0.04em] text-neutral-100">
+                                        Developer tools
+                                    </span>
+                                    <span className="text-xs text-neutral-500">API &amp; CLI access</span>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <Button size="sm" asChild>
+                                    <a href="https://api.1337.legal/swagger" target="_blank" rel="noopener noreferrer">
+                                        <Zap className="mr-1 h-3 w-3" /> Swagger
+                                    </a>
+                                </Button>
+                                <Button size="sm" variant="outline" asChild>
+                                    <a
+                                        href="https://github.com/1337-legal/cli"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                     >
-                                        <a href="https://github.com/1337-legal/cli" target="_blank" rel="noopener noreferrer">
-                                            <Github className="mr-1 h-3 w-3" /> CLI
-                                        </a>
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                        <GitFork className="mr-1 h-3 w-3" /> CLI
+                                    </a>
+                                </Button>
+                            </div>
+                        </Panel>
 
-                        <Card className="border-neutral-800 bg-neutral-950/50 backdrop-blur-sm">
-                            <CardHeader className="space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
-                                        <Shield className="h-4 w-4 text-emerald-400" />
-                                    </div>
-                                    <CardTitle className="text-sm text-neutral-200">Your security</CardTitle>
+                        <Panel className="flex flex-col gap-4 bg-[#0d0d0d] p-6">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-emerald-400/60">
+                                    <CubeMark className="h-4 w-4 text-emerald-400" />
                                 </div>
-                            </CardHeader>
-                            <CardContent>
-                                <ul className="space-y-2 text-xs text-neutral-400">
-                                    <li className="flex items-start gap-2">
-                                        <Check className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" />
-                                        <span>Mnemonic never leaves your device</span>
+                                <span className="font-display text-sm font-semibold uppercase tracking-[0.04em] text-neutral-100">
+                                    Your security
+                                </span>
+                            </div>
+                            <ul className="flex flex-col gap-2.5">
+                                {[
+                                    'Mnemonic never leaves your device',
+                                    'Local encryption with your passcode',
+                                    'Zero-knowledge authentication',
+                                ].map((t) => (
+                                    <li key={t} className="flex items-start gap-2.5">
+                                        <Marker size={5} className="mt-1.5 bg-emerald-400" />
+                                        <span className="text-xs leading-relaxed text-neutral-400">{t}</span>
                                     </li>
-                                    <li className="flex items-start gap-2">
-                                        <Check className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" />
-                                        <span>Local encryption with your passcode</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <Check className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" />
-                                        <span>Zero-knowledge authentication</span>
-                                    </li>
-                                </ul>
-                            </CardContent>
-                        </Card>
+                                ))}
+                            </ul>
+                        </Panel>
                     </aside>
                 </div>
             </main>

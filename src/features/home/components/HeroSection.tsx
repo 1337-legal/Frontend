@@ -1,62 +1,73 @@
-import { ArrowRight, Github, Zap } from 'lucide-react';
+import { IsoShellStack, Marker } from '@Components/icons/Lattice';
+import { Badge } from '@Components/ui/badge';
+import { Button } from '@Components/ui/button';
+import { ArrowRight, GitFork, Zap } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router';
 
-import { Badge } from '@Components/ui/badge';
-import { Button } from '@Components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@Components/ui/tooltip';
-
-import HeroFlowField from './HeroFlowField';
-import Spark from './Spark';
-
 export const HeroSection: React.FC = () => (
-    <header className="relative z-10 mx-auto flex max-w-7xl flex-col gap-10 px-6 pt-24 pb-16 md:pt-32">
-        <HeroFlowField />
-        <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-orange-400/50 bg-neutral-900/60 text-orange-300 backdrop-blur">
-                <Spark className="mr-1" /> 1337 Powered
-            </Badge>
-            <Badge className="bg-orange-600/25 text-orange-200 hover:bg-orange-600/30">Beta</Badge>
-        </div>
-        <h1 className="text-balance font-cal text-4xl leading-tight tracking-tight md:text-6xl text-neutral-100 animate-fade-in-up">
-            Private Email Aliases
-            <span className="block bg-gradient-to-r from-orange-400 via-orange-300 to-amber-200 bg-clip-text font-semibold text-transparent">Simple. Encrypted. Yours.</span>
-        </h1>
-        <span aria-hidden className="block h-px w-24 bg-gradient-to-r from-orange-400/60 to-transparent animate-fade-in-up-delayed" />
-        <p className="max-w-2xl text-lg text-neutral-400 md:text-xl animate-fade-in-up-delayed">
-            Create and use clean, disposable email aliases that keep your real address hidden — with no content logs, no IP logs, and nothing to correlate you.
-        </p>
-        <p className="max-w-2xl text-base md:text-lg text-neutral-400/90 italic animate-fade-in-up-long">
-            Because sometimes you want to be sure the flaw is not your mail.
-        </p>
-        <div className="flex flex-wrap gap-4">
-            <Button size="lg" className="group bg-orange-500 text-neutral-900 hover:bg-orange-400 shadow-sm hover:shadow-md transition-shadow" asChild>
-                <Link to="/auth">
-                    Get Started <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-            </Button>
-            <Button
-                size="lg"
-                variant="outline"
-                className="border-neutral-700 hover:border-neutral-600 text-neutral-200 hover:text-neutral-100 bg-neutral-900/40 backdrop-blur hover:bg-neutral-800/60 transition-colors"
-                asChild
-            >
-                <a href="https://github.com/1337-legal" target="_blank" rel="noopener noreferrer">
-                    <Github className="mr-2 h-4 w-4" /> GitHub
-                </a>
-            </Button>
-            <TooltipProvider delayDuration={150}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button size="lg" variant="ghost" className="text-neutral-400 hover:text-orange-300 hover:bg-transparent focus-visible:bg-transparent active:bg-transparent" asChild>
-                            <Link to="https://api.1337.legal/swagger" target='_blank'>
-                                <Zap className="mr-2 h-4 w-4" /> Swagger
-                            </Link>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs">Auto‑generated OpenAPI docs</TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+    <header className="lattice border-b border-neutral-800">
+        <div className="mx-auto grid max-w-7xl items-start gap-16 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_470px] lg:px-12 lg:py-24">
+            <div className="flex flex-col items-start">
+                <div className="mb-9 flex flex-wrap gap-2.5">
+                    <Badge variant="outline" className="gap-2 border-orange-500 text-orange-300">
+                        <Marker /> 1337 Powered
+                    </Badge>
+                    <Badge>Beta</Badge>
+                </div>
+
+                <h1 className="font-display text-4xl font-bold uppercase leading-[0.96] tracking-tight text-neutral-100 text-balance sm:text-5xl lg:text-[52px] xl:text-[68px]">
+                    Private email
+                    <br />
+                    aliases
+                </h1>
+                <p className="mt-4 font-display text-xl font-semibold uppercase tracking-[0.02em] text-orange-500 sm:text-2xl xl:text-3xl">
+                    Simple. Encrypted. Yours.
+                </p>
+
+                <div className="mt-9 flex items-center">
+                    <Marker size={8} />
+                    <span aria-hidden className="block h-px w-26 bg-neutral-700" />
+                </div>
+
+                <p className="mt-8 max-w-xl text-base leading-relaxed text-neutral-400 text-pretty md:text-[17px]">
+                    Create and use clean, disposable email aliases that keep your real address hidden — with no content
+                    logs, no IP logs, and nothing to correlate you.
+                </p>
+                <p className="mt-5 max-w-xl text-[15px] italic leading-relaxed text-neutral-500">
+                    Because sometimes you want to be sure the flaw is not your mail.
+                </p>
+
+                <div className="mt-10 flex flex-wrap items-center gap-3.5">
+                    <Button asChild size="lg" className="group">
+                        <Link to="/auth">
+                            Get started{' '}
+                            <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        </Link>
+                    </Button>
+                    <Button asChild size="lg" variant="outline">
+                        <a href="https://github.com/1337-legal" target="_blank" rel="noopener noreferrer">
+                            <GitFork className="mr-1 h-4 w-4" /> GitHub
+                        </a>
+                    </Button>
+                    <Button asChild size="lg" variant="ghost">
+                        <a href="https://api.1337.legal/swagger" target="_blank" rel="noopener noreferrer">
+                            <Zap className="mr-1 h-4 w-4" /> Swagger
+                        </a>
+                    </Button>
+                </div>
+
+                <div className="mt-8 flex items-center gap-3">
+                    <Marker size={6} />
+                    <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-400">
+                        10,000+ users keep their address private
+                    </span>
+                </div>
+            </div>
+
+            <div className="hidden justify-center lg:flex">
+                <IsoShellStack className="w-[446px]" />
+            </div>
         </div>
     </header>
 );

@@ -1,71 +1,171 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router';
-
-import AccountNebulaScene from '@Features/account/components/AccountNebulaScene';
+import { CubeLock, CubeMark, Marker } from '@Components/icons/Lattice';
 import AliasesTab from '@Features/account/components/AliasesTab';
 import AutofillTab from '@Features/account/components/AutofillTab';
 import EncryptionTab from '@Features/account/components/EncryptionTab';
 import RouteTab from '@Features/account/components/RouteTab';
+import OnionStatus from '@Features/shared/components/OnionStatus';
+import React, { useState } from 'react';
+import { Link } from 'react-router';
+
+import { cn } from '@/lib/utils';
+
+type TabKey = 'aliases' | 'autofill' | 'route' | 'encryption';
+
+const EnvelopeSquare: React.FC<{ className?: string }> = ({ className }) => (
+    <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="square"
+        strokeLinejoin="miter"
+        className={className}
+        aria-hidden="true"
+    >
+        <path d="M3 6 H21 V18 H3 Z" />
+        <path d="M3 6 L12 13 L21 6" />
+    </svg>
+);
+
+const RouteSquare: React.FC<{ className?: string }> = ({ className }) => (
+    <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="square"
+        strokeLinejoin="miter"
+        className={className}
+        aria-hidden="true"
+    >
+        <path d="M3 5 H9 V11 H3 Z" />
+        <path d="M15 13 H21 V19 H15 Z" />
+        <path d="M9 8 H15 V16" />
+    </svg>
+);
+
+const AutofillSquare: React.FC<{ className?: string }> = ({ className }) => (
+    <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="square"
+        strokeLinejoin="miter"
+        className={className}
+        aria-hidden="true"
+    >
+        <path d="M4 4 H20 V20 H4 Z" />
+        <path d="M8 12 H16" />
+        <path d="M13 8 L17 12 L13 16" />
+    </svg>
+);
+
+const tabs: { key: TabKey; label: string; icon: React.FC<{ className?: string }> }[] = [
+    { key: 'aliases', label: 'Aliases', icon: EnvelopeSquare },
+    { key: 'autofill', label: 'Autofill', icon: AutofillSquare },
+    { key: 'route', label: 'Route', icon: RouteSquare },
+    { key: 'encryption', label: 'Encryption', icon: CubeLock },
+];
 
 const Account: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'autofill' | 'route' | 'aliases' | 'encryption'>('autofill');
-
-    // Detect small screens for compact rendering (e.g., PWA on phones)
-    const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-        if (typeof window === 'undefined' || !window.matchMedia) return;
-        const mq = window.matchMedia('(max-width: 640px)');
-        const onChange = () => setIsMobile(mq.matches);
-        onChange();
-        mq.addEventListener?.('change', onChange);
-        return () => mq.removeEventListener?.('change', onChange);
-    }, []);
+    const [activeTab, setActiveTab] = useState<TabKey>('aliases');
 
     return (
-        <div className="relative min-h-dvh bg-neutral-950 text-neutral-100 overflow-hidden">
-            <div className="pointer-events-none fixed inset-0 z-0">
-                <div className="absolute inset-0 opacity-45">
-                    <AccountNebulaScene compact={isMobile} />
-                </div>
-                <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(10,10,10,0)_0%,rgba(10,10,10,0.4)_55%,rgba(0,0,0,0.85)_100%)]" />
-            </div>
-            <div className="relative z-10 mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12 pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)]">
-                <div className="mb-8 flex items-center gap-3 text-xs">
-                    <Link to="/auth" className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-medium text-neutral-400 transition hover:text-orange-300">
-                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Back
+        <div className="flex min-h-dvh flex-col bg-neutral-950 text-neutral-100">
+            {}
+            <div className="flex min-h-[71px] shrink-0 items-center justify-between border-b border-neutral-800 bg-neutral-950 px-5 pt-[env(safe-area-inset-top)] lg:px-10">
+                <Link to="/" className="flex items-center gap-3">
+                    <CubeMark className="h-[22px] w-[22px] text-orange-500" />
+                    <span className="font-display text-[17px] font-bold tracking-[0.04em] text-neutral-100">
+                        1337.legal
+                    </span>
+                    <span aria-hidden className="mx-1 hidden h-5.5 w-px bg-neutral-800 sm:block" />
+                    <span className="hidden font-mono text-[11px] uppercase tracking-[0.2em] text-orange-300 sm:inline">
+                        Account
+                    </span>
+                </Link>
+                <div className="flex items-center gap-4">
+                    <div className="hidden items-center gap-2.5 border border-neutral-800 bg-[#0d0d0d] px-3 py-2 sm:flex">
+                        <Marker size={6} className="bg-emerald-400" />
+                        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-400">
+                            Session unlocked
+                        </span>
+                    </div>
+                    <Link
+                        to="/auth"
+                        className="flex h-10 items-center border border-neutral-800 px-3 font-mono text-[11px] uppercase tracking-[0.14em] text-neutral-400 transition-colors hover:border-orange-500/60 hover:text-orange-300"
+                    >
+                        Lock
                     </Link>
-                    <span className="rounded border border-orange-400/40 bg-neutral-900/60 px-2 py-0.5 font-semibold tracking-wide text-orange-300">Account</span>
                 </div>
-                <div className="overflow-hidden rounded-xl border border-neutral-800/60 bg-neutral-900/25 shadow-xl backdrop-blur-md [--tw-backdrop-blur:blur(8px)] ring-1 ring-neutral-800/40">
-                    <div className="border-b border-neutral-800/60 bg-gradient-to-b from-neutral-900/70 via-neutral-900/40 to-neutral-900/10 px-4 sm:px-6 pt-4 sm:pt-5">
-                        <h1 className="mb-4 text-xl font-semibold tracking-tight">Account</h1>
-                        <div className="flex gap-5 sm:gap-6 text-[11px] font-medium tracking-wide overflow-x-auto whitespace-nowrap -mx-4 sm:mx-0 px-4 sm:px-0">
-                            {(['autofill', 'route', 'aliases', 'encryption'] as const).map(k => (
-                                <button key={k} onClick={() => setActiveTab(k)} className={`relative pb-2 py-1 transition after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-full after:rounded-full after:transition ${activeTab === k ? 'text-orange-300 after:bg-orange-400' : 'text-neutral-500 hover:text-orange-300 after:bg-orange-400 after:scale-x-0 hover:after:scale-x-100'}`}>{k.charAt(0).toUpperCase() + k.slice(1)}</button>
-                            ))}
+            </div>
+
+            <div className="flex flex-grow flex-col lg:flex-row">
+                {}
+                <nav className="shrink-0 border-b border-neutral-800 bg-[#0d0d0d] lg:w-61 lg:border-b-0 lg:border-r lg:py-8">
+                    <span className="hidden px-6 pb-4 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500 lg:block">
+                        Sections
+                    </span>
+                    <div className="flex overflow-x-auto lg:flex-col lg:overflow-visible">
+                        {tabs.map((t) => {
+                            const active = activeTab === t.key;
+                            return (
+                                <button
+                                    key={t.key}
+                                    type="button"
+                                    onClick={() => setActiveTab(t.key)}
+                                    aria-current={active ? 'page' : undefined}
+                                    className={cn(
+                                        'flex h-15 shrink-0 items-center gap-3.5 whitespace-nowrap px-5 transition-colors lg:pl-[21px] lg:pr-6',
+                                        'border-b-2 lg:border-b-0 lg:border-l-[3px]',
+                                        active
+                                            ? 'border-orange-500 bg-[#151007] text-orange-300'
+                                            : 'border-transparent text-neutral-400 hover:text-neutral-200',
+                                    )}
+                                >
+                                    <t.icon
+                                        className={cn(
+                                            'h-[19px] w-[19px]',
+                                            active ? 'text-orange-500' : 'text-neutral-500',
+                                        )}
+                                    />
+                                    <span className="font-display text-[15px] font-semibold uppercase tracking-[0.06em]">
+                                        {t.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="hidden lg:block">
+                        <div aria-hidden className="mx-6 mt-7 h-px bg-neutral-800" />
+                        <div className="mx-6 mt-6">
+                            <OnionStatus />
                         </div>
                     </div>
-                    <div className="p-4 sm:p-6 md:p-8 min-h-[360px] sm:min-h-[420px] bg-gradient-to-b from-neutral-900/30 via-neutral-900/15 to-transparent">{/* added subtle fade */}
-                        {activeTab === 'autofill' && (
-                            <AutofillTab />
-                        )}
-                        {activeTab === 'route' && (
-                            <RouteTab />
-                        )}
-                        {activeTab === 'aliases' && (
-                            <AliasesTab />
-                        )}
-                        {activeTab === 'encryption' && (
-                            <EncryptionTab />
-                        )}
+                </nav>
+
+                {}
+                <main className="lattice flex-grow px-5 py-8 pb-[max(env(safe-area-inset-bottom),2rem)] lg:px-10 lg:py-10">
+                    <div className="mx-auto max-w-5xl">
+                        {activeTab === 'aliases' && <AliasesTab />}
+                        {activeTab === 'autofill' && <AutofillTab />}
+                        {activeTab === 'route' && <RouteTab />}
+                        {activeTab === 'encryption' && <EncryptionTab />}
+
+                        <p className="mt-10 border-t border-neutral-800 pt-6 font-mono text-[11px] leading-relaxed text-neutral-500">
+                            Forwarding, encryption &amp; purge operations are client initiated; verify the open source
+                            backend for exact behavior.
+                        </p>
                     </div>
-                    <div className="border-t border-neutral-800/60 px-4 sm:px-8 py-4 sm:py-5 text-center bg-neutral-900/20 backdrop-blur-sm pb-[max(env(safe-area-inset-bottom),1rem)]">
-                        <p className="text-[10px] text-neutral-500">Forwarding, encryption & purge operations are client initiated; verify open source backend for exact behavior.</p>
-                    </div>
-                </div>
+                </main>
             </div>
         </div>
     );

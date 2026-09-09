@@ -1,6 +1,3 @@
-import { createBrowserRouter } from 'react-router';
-import { RouterProvider } from 'react-router/dom';
-
 import Account from '@Pages/Account';
 import Auth from '@Pages/Auth';
 import Home from '@Pages/Home';
@@ -11,53 +8,55 @@ import Roadmap from '@Pages/Roadmap';
 import Status from '@Pages/Status';
 import Terms from '@Pages/Terms';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createBrowserRouter } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 
 const router = createBrowserRouter([
     {
         path: '/',
         element: <Home />,
         errorElement: <NotFound />,
-        children: []
+        children: [],
     },
     {
         path: '/license',
         element: <License />,
-        errorElement: <NotFound />
+        errorElement: <NotFound />,
     },
     {
         path: '/auth',
         element: <Auth />,
-        errorElement: <NotFound />
+        errorElement: <NotFound />,
     },
     {
         path: '/roadmap',
         element: <Roadmap />,
-        errorElement: <NotFound />
+        errorElement: <NotFound />,
     },
     {
         path: '/terms',
         element: <Terms />,
-        errorElement: <NotFound />
+        errorElement: <NotFound />,
     },
     {
         path: '/privacy',
         element: <Privacy />,
-        errorElement: <NotFound />
+        errorElement: <NotFound />,
     },
     {
         path: '/status',
         element: <Status />,
-        errorElement: <NotFound />
+        errorElement: <NotFound />,
     },
     {
         path: '/account',
         element: <Account />,
-        errorElement: <NotFound />
+        errorElement: <NotFound />,
     },
     {
         path: '*',
-        element: <NotFound />
-    }
+        element: <NotFound />,
+    },
 ]);
 
 const Router = () => {
@@ -65,7 +64,7 @@ const Router = () => {
         <QueryClientProvider client={new QueryClient()}>
             <RouterProvider router={router} />
         </QueryClientProvider>
-    )
-}
+    );
+};
 
 export default Router;

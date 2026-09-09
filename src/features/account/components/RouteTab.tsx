@@ -1,29 +1,31 @@
-import { RefreshCw } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-
+import { Marker, ReloadSquare } from '@Components/icons/Lattice';
+import { Button } from '@Components/ui/button';
+import { Panel } from '@Components/ui/panel';
 import BackendService from '@Services/BackendService';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from 'react';
 
-/**
- * Forwarding address configuration tab.
- * Allows the user to set/update the destination address for routed messages.
- */
 const RouteTab: React.FC = () => {
     const queryClient = useQueryClient();
 
-    const { data: user, isLoading, isFetching } = useQuery({
+    const {
+        data: user,
+        isLoading,
+        isFetching,
+    } = useQuery({
         queryKey: ['user'],
         queryFn: () => BackendService.getUser(),
     });
 
     const [forwarding, setForwarding] = useState('');
     const [status, setStatus] = useState('');
+    const [syncedAddress, setSyncedAddress] = useState<string | undefined>(undefined);
 
-    useEffect(() => {
+    if (user?.address !== syncedAddress) {
+        setSyncedAddress(user?.address);
         setForwarding(user?.address || '');
-    }, [user?.address]);
+    }
 
-    /** Persists the forwarding address and refreshes the user cache. */
     const updateMutation = useMutation({
         mutationFn: (address: string) => BackendService.updateUser({ address }),
         onSuccess: () => {
@@ -33,7 +35,6 @@ const RouteTab: React.FC = () => {
         onError: (e: unknown) => setStatus(e instanceof Error ? e.message : 'Update failed'),
     });
 
-    /** Triggers the update when a non-empty address is present. */
     const onUpdate = () => {
         if (!forwarding) return;
         setStatus('');
@@ -41,20 +42,61 @@ const RouteTab: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8">
-            <section>
-                <h2 className="mb-2 text-sm font-semibold tracking-wide text-neutral-200">Forwarding Address</h2>
-                <p className="mb-4 text-[11px] text-neutral-500">Destination for routed mail / messages.</p>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <input value={forwarding} onChange={e => setForwarding(e.target.value)} placeholder="you@example.com" className="flex-1 rounded-md bg-neutral-950/60 px-2 py-2 text-xs text-neutral-100 outline-none focus:bg-neutral-900/70 focus:ring-2 focus:ring-orange-500/30" />
-                    <button onClick={onUpdate} disabled={!forwarding || updateMutation.isPending} className="inline-flex items-center justify-center rounded-md bg-orange-500 px-4 py-2 text-[11px] font-semibold text-neutral-900 hover:bg-orange-400 disabled:opacity-40">
-                        {updateMutation.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : 'Update'}
-                    </button>
+        <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-2.5">
+                <div className="flex items-center gap-3.5">
+                    <Marker size={10} />
+                    <h1 className="font-display text-3xl font-bold uppercase leading-none tracking-[0.03em] text-neutral-100">
+                        Forwarding address
+                    </h1>
+                </div>
+                <p className="pl-6 font-mono text-[11px] leading-relaxed text-neutral-500">
+                    Destination for routed mail and messages.
+                </p>
+            </div>
+
+            <Panel ticks className="flex flex-col gap-4 p-6">
+                <label
+                    htmlFor="forwarding"
+                    className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-300"
+                >
+                    Destination inbox
+                </label>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <input
+                        id="forwarding"
+                        value={forwarding}
+                        onChange={(e) => setForwarding(e.target.value)}
+                        placeholder="you@example.com"
+                        className="h-12 flex-grow border border-neutral-800 bg-neutral-950 px-4 font-mono text-sm text-neutral-100 outline-none transition-colors placeholder:text-neutral-600 focus:border-orange-500"
+                    />
+                    <Button
+                        onClick={onUpdate}
+                        disabled={!forwarding || updateMutation.isPending}
+                        className="h-12 shrink-0"
+                    >
+                        {updateMutation.isPending ? <ReloadSquare className="h-3.5 w-3.5 animate-spin" /> : 'Update'}
+                    </Button>
                 </div>
                 {(status || isLoading || isFetching) && (
-                    <p className="mt-2 text-[10px] text-neutral-400">{isLoading || isFetching ? 'Loading…' : status}</p>
+                    <p className="font-mono text-[11px] text-neutral-400">
+                        {isLoading || isFetching ? 'Loading…' : status}
+                    </p>
                 )}
-            </section>
+            </Panel>
+
+            <div className="border border-neutral-800 bg-[#0d0d0d] p-5">
+                <div className="mb-2.5 flex items-center gap-2.5">
+                    <Marker />
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-300">
+                        How routing works
+                    </span>
+                </div>
+                <p className="max-w-2xl text-xs leading-relaxed text-neutral-500">
+                    Every alias you create forwards here. Upstream services only ever see the alias — your destination
+                    inbox is never disclosed to them.
+                </p>
+            </div>
         </div>
     );
 };

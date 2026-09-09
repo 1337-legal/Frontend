@@ -1,40 +1,60 @@
+import { Marker } from '@Components/icons/Lattice';
+import { Button } from '@Components/ui/button';
+import SiteFooter from '@Features/shared/components/SiteFooter';
+import SiteNav from '@Features/shared/components/SiteNav';
 import { ArrowLeft } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router';
 
-import AuthNebulaScene from '@Features/auth/components/AuthNebulaScene';
+const NotFound: React.FC = () => (
+    <div className="flex min-h-screen w-full flex-col bg-neutral-950 text-neutral-100">
+        <SiteNav />
 
-const NotFound: React.FC = () => {
+        <main className="lattice flex flex-grow items-center">
+            <div className="mx-auto flex w-full max-w-3xl flex-col items-start px-6 py-24 lg:px-12">
+                <div className="mb-8 flex items-center gap-3 border border-orange-500 px-3 py-2">
+                    <Marker />
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-300">
+                        404 — routing error
+                    </span>
+                </div>
 
-    return (
-        <div className="relative min-h-screen w-full overflow-hidden bg-neutral-950 text-neutral-100">
-            <div className="pointer-events-none fixed inset-0 z-0">
-                <div className="absolute inset-0 opacity-40 [mask-image:radial-gradient(circle_at_center,black,transparent_75%)]">
-                    <AuthNebulaScene />
+                <h1 className="font-display text-5xl font-bold uppercase leading-[0.96] tracking-tight text-neutral-100 md:text-6xl">
+                    Page not
+                    <br />
+                    found
+                </h1>
+
+                <div className="mt-8 flex items-center">
+                    <Marker size={8} />
+                    <span aria-hidden className="block h-px w-26 bg-neutral-700" />
                 </div>
-                <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(10,10,10,0)_0%,rgba(10,10,10,0.55)_50%,rgba(0,0,0,0.9)_100%)]" />
-            </div>
-            <main className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-6 py-36 text-center md:py-48">
-                <div className="mb-10 inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-neutral-900/60 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-orange-300">
-                    <span>404</span>
-                    <span className="h-1 w-1 rounded-full bg-orange-400/60" />
-                    <span>routing error</span>
-                </div>
-                <h1 className="mb-4 pb-2 overflow-visible leading-[1.2] bg-gradient-to-br from-orange-200 via-orange-400 to-rose-400 bg-clip-text text-5xl font-bold tracking-tight text-transparent md:text-6xl">Page Not Found</h1>
-                <p className="mx-auto mb-10 max-w-xl text-sm leading-relaxed text-neutral-400">
-                    The page you are looking for does not exist. If you believe this is an issue, please return home or open an issue in our public repositories.
+
+                <p className="mt-8 max-w-xl text-base leading-relaxed text-neutral-400 text-pretty">
+                    The page you are looking for does not exist. If you believe this is an issue, return home or open an
+                    issue in our public repositories.
                 </p>
-                <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
-                    <Link to="/" className="inline-flex items-center rounded-md bg-orange-500 px-4 py-2 font-semibold text-neutral-900 shadow transition hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/60">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Home
-                    </Link>
-                    <Link to="/auth" className="rounded-md border border-neutral-700 bg-neutral-900/60 px-4 py-2 font-semibold text-neutral-300 transition hover:border-orange-500/50 hover:text-orange-200">Authenticate</Link>
-                    <a href="https://github.com/1337-legal" target="_blank" rel="noopener noreferrer" className="rounded-md border border-neutral-700 bg-neutral-900/60 px-4 py-2 font-semibold text-neutral-300 transition hover:border-orange-500/50 hover:text-orange-200">GitHub Org</a>
+
+                <div className="mt-10 flex flex-wrap gap-3">
+                    <Button asChild size="lg">
+                        <Link to="/">
+                            <ArrowLeft className="mr-1 h-4 w-4" /> Home
+                        </Link>
+                    </Button>
+                    <Button asChild size="lg" variant="outline">
+                        <Link to="/auth">Authenticate</Link>
+                    </Button>
+                    <Button asChild size="lg" variant="ghost">
+                        <a href="https://github.com/1337-legal" target="_blank" rel="noopener noreferrer">
+                            GitHub org
+                        </a>
+                    </Button>
                 </div>
-            </main>
-            <div className="pointer-events-none fixed inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/70 to-transparent" />
-        </div>
-    );
-};
+            </div>
+        </main>
+
+        <SiteFooter />
+    </div>
+);
 
 export default NotFound;

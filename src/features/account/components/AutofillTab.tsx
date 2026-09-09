@@ -1,134 +1,179 @@
-import { AlertCircle, Plus, RefreshCw } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
-
+import { Marker, ReloadSquare } from '@Components/icons/Lattice';
 import { Button } from '@Components/ui/button';
+import { Panel } from '@Components/ui/panel';
 import BackendService from '@Services/BackendService';
+import { Plus } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
 
-declare global { interface Window { __1337Ext?: unknown } }
+import { cn } from '@/lib/utils';
 
-/**
- * Quick alias generation and autofill assist for forms.
- * Provides one-click alias creation and clipboard copy UX.
- */
+declare global {
+    interface Window {
+        __1337Ext?: unknown;
+    }
+}
+
 const AutofillTab: React.FC = () => {
     const [copied, setCopied] = useState(false);
-    const [justGenerated, setJustGenerated] = useState(false);
     const [quickCreating, setQuickCreating] = useState(false);
     const [lastCreated, setLastCreated] = useState<string>('');
 
     const aliasValue = lastCreated || '';
 
-    /**
-     * Creates a new random alias quickly and stores the returned address.
-     */
-    const quickCreate = async () => {
-        setQuickCreating(true);
+    const copyText = useCallback(async (value: string) => {
+        if (!value) return;
         try {
-            const r = await BackendService.createAlias() as unknown as { address?: string };
-            setLastCreated(r?.address || 'created');
-        } catch {
-            setLastCreated('failed');
-        } finally { setQuickCreating(false); }
-    };
-
-    /**
-     * Copies the current alias value to the clipboard and shows feedback.
-     */
-    const copy = useCallback(async () => {
-        if (!aliasValue) return;
-        try {
-            await navigator.clipboard.writeText(aliasValue);
+            await navigator.clipboard.writeText(value);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
+        } catch {}
+    }, []);
+
+    const quickCreate = async (): Promise<string> => {
+        setQuickCreating(true);
+        try {
+            const r = (await BackendService.createAlias()) as unknown as { address?: string };
+            const address = r?.address || 'created';
+            setLastCreated(address);
+            return address;
         } catch {
-            /* noop */
+            setLastCreated('failed');
+            return '';
+        } finally {
+            setQuickCreating(false);
         }
-    }, [aliasValue]);
+    };
 
-    /** Auto-copies when a new alias appears. */
-    useEffect(() => {
-        if (aliasValue && justGenerated) {
-            void copy();
-            setJustGenerated(false);
-        }
-    }, [aliasValue, justGenerated, copy]);
-
-    /**
-     * Kicks off alias generation and flags auto-copy on update.
-     */
     const handleGenerate = () => {
-        setJustGenerated(true); // flag to copy after parent updates lastCreated
-        quickCreate();
+        void (async () => {
+            const address = await quickCreate();
+            await copyText(address);
+        })();
     };
 
     const extensionDetected = typeof window.__1337Ext !== 'undefined';
 
     return (
-        <div className="space-y-6">
-            <section>
-                <div className="mb-4 flex items-start justify-between gap-4">
-                    <div>
-                        <h2 className="mb-1 text-sm font-semibold tracking-wide text-neutral-200">Quick Alias</h2>
-                        <p className="text-[11px] leading-relaxed text-neutral-500 max-w-md">Generate a random disposable alias for forms. It routes through your forwarding address (if configured) while keeping your real inbox private.</p>
+        <div className="flex flex-col gap-8">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+                <div className="flex flex-col gap-2.5">
+                    <div className="flex items-center gap-3.5">
+                        <Marker size={10} />
+                        <h1 className="font-display text-3xl font-bold uppercase leading-none tracking-[0.03em] text-neutral-100">
+                            Quick alias
+                        </h1>
                     </div>
-                    <div className="rounded-md border border-neutral-800/60 bg-neutral-900/40 px-3 py-2 text-[10px] text-neutral-400">
-                        <span className={extensionDetected ? 'text-green-300 font-semibold' : 'text-red-300 font-semibold flex items-center gap-1'}>
-                            {!extensionDetected && <AlertCircle className="h-3.5 w-3.5" />}Autofill {extensionDetected ? 'Enabled' : 'Disabled'}
-                        </span>
-                        {!extensionDetected && <span className="mt-1 block font-normal text-neutral-500">Browser extension not detected.</span>}
-                    </div>
+                    <p className="max-w-lg pl-6 font-mono text-[11px] leading-relaxed text-neutral-500">
+                        Generate a random disposable alias for forms. It routes through your forwarding address while
+                        keeping your real inbox private.
+                    </p>
                 </div>
-
-                <div className="flex flex-col gap-4">
-                    <div className="relative">
-                        <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-neutral-500">Current Alias</label>
-                        <div className="flex items-stretch rounded-md border border-neutral-800/60 bg-neutral-950/50 focus-within:border-orange-500/50">
-                            <input
-                                value={aliasValue}
-                                readOnly
-                                placeholder="(none yet)"
-                                onClick={() => { void copy(); }}
-                                onFocus={(e) => e.currentTarget.select()}
-                                title={aliasValue ? 'Tap to copy' : ''}
-                                className={`flex-1 bg-transparent px-2 py-2 text-center text-[11px] font-mono placeholder-neutral-600 outline-none ${aliasValue ? 'cursor-pointer text-orange-200' : 'text-neutral-500'}`}
-                            />
-                            <Button onClick={handleGenerate} disabled={quickCreating} className="inline-flex shrink-0 items-center rounded-none rounded-r-md bg-orange-500 px-3 py-2 text-[11px] font-semibold text-neutral-900 shadow hover:bg-orange-400 disabled:opacity-50 whitespace-nowrap">
-                                {quickCreating ? <RefreshCw className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Plus className="mr-1 h-3.5 w-3.5" />} {quickCreating ? 'Generating...' : 'Generate'}
-                            </Button>
-                        </div>
-                        {copied && (
-                            <div className="pointer-events-none absolute left-1/2 -top-1.5 -translate-x-1/2 -translate-y-full rounded-md border border-neutral-800/60 bg-neutral-900/90 px-2 py-1 text-[10px] font-medium text-orange-300 shadow">
-                                Copied
-                            </div>
-                        )}
-                    </div>
-
-                    {!extensionDetected && (
-                        <div className="mt-1 rounded-md border border-neutral-800/60 bg-neutral-900/40 px-3 py-2 text-[10px] text-neutral-400">
-                            <p className="mb-1"><strong className="text-orange-300">Tip:</strong> Install the extension to autofill aliases directly into forms (context menu + auto‑replace).</p>
-                            <div className="flex flex-wrap gap-2">
-                                <a href="https://chromewebstore.google.com" target="_blank" rel="noreferrer" className="rounded bg-orange-500/90 px-2 py-1 font-semibold text-neutral-900 hover:bg-orange-400">Chrome</a>
-                                <a href="https://addons.mozilla.org" target="_blank" rel="noreferrer" className="rounded border border-neutral-700 bg-neutral-800/60 px-2 py-1 font-medium text-neutral-300 hover:border-orange-500/40 hover:text-orange-200">Firefox</a>
-                            </div>
-                        </div>
+                <div
+                    className={cn(
+                        'flex items-center gap-2.5 border px-3 py-2',
+                        extensionDetected ? 'border-emerald-400' : 'border-amber-400',
                     )}
+                >
+                    <Marker size={5} className={extensionDetected ? 'bg-emerald-400' : 'bg-amber-400'} />
+                    <span
+                        className={cn(
+                            'font-mono text-[10px] font-semibold uppercase tracking-[0.14em]',
+                            extensionDetected ? 'text-emerald-400' : 'text-amber-300',
+                        )}
+                    >
+                        Autofill {extensionDetected ? 'enabled' : 'unavailable'}
+                    </span>
                 </div>
-            </section>
+            </div>
 
-            <section className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-lg border border-neutral-800/60 bg-neutral-900/40 p-4">
-                    <h3 className="mb-1 text-[11px] font-semibold tracking-wide text-neutral-300">Alias Pattern</h3>
-                    <p className="text-[10px] text-neutral-500">Aliases are random human‑readable words ensuring low collision while staying memorizable.</p>
+            <Panel ticks className="flex flex-col gap-4 p-6">
+                <div className="flex items-center justify-between gap-4">
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-300">
+                        Current alias
+                    </span>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-neutral-500">
+                        {aliasValue ? 'Select the field to copy' : 'None yet'}
+                    </span>
                 </div>
-                <div className="rounded-lg border border-neutral-800/60 bg-neutral-900/40 p-4">
-                    <h3 className="mb-1 text-[11px] font-semibold tracking-wide text-neutral-300">Forward Routing</h3>
-                    <p className="text-[10px] text-neutral-500">Mail arrives at your forwarding inbox; upstream services never see your real address.</p>
+
+                <div
+                    className={cn(
+                        'flex flex-col items-stretch border sm:flex-row',
+                        aliasValue ? 'border-orange-500' : 'border-neutral-800',
+                    )}
+                >
+                    <input
+                        value={aliasValue}
+                        readOnly
+                        placeholder="(none yet)"
+                        onClick={() => {
+                            void copyText(aliasValue);
+                        }}
+                        onFocus={(e) => e.currentTarget.select()}
+                        title={aliasValue ? 'Copy to clipboard' : ''}
+                        aria-label="Current alias"
+                        className={cn(
+                            'h-13 flex-grow bg-neutral-950 px-4 font-mono text-sm outline-none placeholder:text-neutral-600',
+                            aliasValue ? 'cursor-pointer text-orange-300' : 'text-neutral-500',
+                        )}
+                    />
+                    {copied && (
+                        <span className="flex items-center border-neutral-800 px-4 font-mono text-[11px] uppercase tracking-[0.12em] text-emerald-400 sm:border-l">
+                            Copied
+                        </span>
+                    )}
+                    <Button onClick={handleGenerate} disabled={quickCreating} className="h-13 chamfer-none shrink-0">
+                        {quickCreating ? (
+                            <ReloadSquare className="mr-1 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <Plus className="mr-1 h-3.5 w-3.5" />
+                        )}
+                        {quickCreating ? 'Generating…' : 'Generate'}
+                    </Button>
                 </div>
-                <div className="rounded-lg border border-neutral-800/60 bg-neutral-900/40 p-4">
-                    <h3 className="mb-1 text-[11px] font-semibold tracking-wide text-neutral-300">Revocation</h3>
-                    <p className="text-[10px] text-neutral-500">Delete an alias any time to immediately stop future delivery attempts.</p>
-                </div>
-            </section>
+
+                {!extensionDetected && (
+                    <div className="flex flex-col gap-3 border border-neutral-800 bg-[#0d0d0d] p-4">
+                        <div className="flex items-center gap-2.5">
+                            <Marker size={5} className="bg-amber-400" />
+                            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                                Extension in development
+                            </span>
+                        </div>
+                        <p className="text-xs leading-relaxed text-neutral-400">
+                            The browser extension is not available to install yet. Once it ships it will fill aliases
+                            straight into forms, from the context menu or by auto-replace.
+                        </p>
+                    </div>
+                )}
+            </Panel>
+
+            <div className="grid gap-5 md:grid-cols-3">
+                {[
+                    {
+                        title: 'Alias pattern',
+                        body: 'Aliases are random human-readable words ensuring low collision while staying memorizable.',
+                    },
+                    {
+                        title: 'Forward routing',
+                        body: 'Mail arrives at your forwarding inbox; upstream services never see your real address.',
+                    },
+                    {
+                        title: 'Revocation',
+                        body: 'Delete an alias any time to immediately stop future delivery attempts.',
+                    },
+                ].map((t) => (
+                    <div key={t.title} className="border border-neutral-800 bg-[#0d0d0d] p-5">
+                        <div className="mb-2.5 flex items-center gap-2.5">
+                            <Marker />
+                            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-300">
+                                {t.title}
+                            </span>
+                        </div>
+                        <p className="text-xs leading-relaxed text-neutral-500">{t.body}</p>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };

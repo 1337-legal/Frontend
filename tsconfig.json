@@ -1,22 +1,21 @@
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.node.json"
+    "files": [],
+    "references": [
+        {
+            "path": "./tsconfig.app.json"
+        },
+        {
+            "path": "./tsconfig.node.json"
+        }
+    ],
+    "compilerOptions": {
+        "paths": {
+            "@Features/*": ["./src/features/*"],
+            "@Components/*": ["./src/components/*"],
+            "@Assets/*": ["./src/assets/*"],
+            "@Services/*": ["./src/services/*"],
+            "@Pages/*": ["./src/pages/*"],
+            "@/*": ["./src/*"]
+        }
     }
-  ],
-  "compilerOptions": {
-    "baseUrl": "./",
-    "paths": {
-      "@Features/*": ["./src/features/*"],
-      "@Components/*": ["./src/components/*"],
-      "@Assets/*": ["./src/assets/*"],
-      "@Services/*": ["./src/services/*"],
-      "@Pages/*": ["./src/pages/*"],
-      "@/*": ["./src/*"]
-    }
-  }
 }

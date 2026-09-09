@@ -22,14 +22,14 @@ Landing & marketing surface for the **1337.legal** privacy email alias service.
 
 ## 🧱 Tech Stack
 
-| Layer | Choice |
-|-------|--------|
-| Runtime | Bun |
-| Framework | React + TypeScript + Vite |
-| Styling | Tailwind CSS (utility + local keyframes) |
-| Routing | `react-router` |
-| Icons | `lucide-react` |
-| UI | Shadcn UI |
+| Layer     | Choice                                   |
+| --------- | ---------------------------------------- |
+| Runtime   | Bun                                      |
+| Framework | React + TypeScript + Vite                |
+| Styling   | Tailwind CSS (utility + local keyframes) |
+| Routing   | `react-router`                           |
+| Icons     | `lucide-react`                           |
+| UI        | Shadcn UI                                |
 
 ---
 
@@ -50,18 +50,20 @@ This marketing SPA only needs public, non-secret endpoints.
 Environment variables (Vite `import.meta.env.*`) are read at build time.
 
 Current variables (see `.env`):
+
 ```bash
 VITE_BACKEND_URL="https://api.1337.legal"
 VITE_TOR_BACKEND_URL="http://sdxckw2f4nwunlcvc5ct34z67octnhxdilpwe7vfsou3aftbwolusnid.onion"
 ```
 
 Notes:
+
 - These are PUBLIC: do not place secrets in `VITE_` prefixed vars (they are bundled).
 - Override locally by creating `.env.local` (git‑ignored by default if you add it to `.gitignore`):
-  ```bash
-  VITE_BACKEND_URL="https://localhost:8787"
-  VITE_TOR_BACKEND_URL="http://exampleonion.onion"
-  ```
+    ```bash
+    VITE_BACKEND_URL="https://localhost:8787"
+    VITE_TOR_BACKEND_URL="http://exampleonion.onion"
+    ```
 - Access in code: `const base = import.meta.env.VITE_BACKEND_URL;`
 - Changing values requires a rebuild (`bun run dev` auto picks up restarts).
 

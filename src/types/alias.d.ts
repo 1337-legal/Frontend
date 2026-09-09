@@ -4,5 +4,5 @@ type AliasRecord = {
     address?: string;
     status?: 'active' | 'disabled';
     createdAt?: string;
-    [k: string]: unknown
+    [k: string]: unknown;
 };
